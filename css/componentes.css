@@ -447,3 +447,32 @@ code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;background
 
 /* Etiqueta visible de la versión de pruebas */
 .badge-prueba{position:fixed;top:calc(env(safe-area-inset-top,0px) + 4px);right:4px;z-index:40;background:#7C3AED;color:#fff;font:700 10px/1 Barlow,system-ui,sans-serif;letter-spacing:.08em;padding:3px 6px;border-radius:4px;pointer-events:none;opacity:.9}
+
+/* ---------- Modos de la app (Planillero, Asistente, Coach) ---------- */
+.modos-app{display:flex;flex-direction:column;gap:8px;border-top:4px solid var(--acc)}
+.modo-opc{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.modo-b{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:8px;border-radius:10px;border:1px solid var(--line);background:var(--bg);text-align:left;min-height:84px}
+.modo-b b{font-size:19px;line-height:1}
+.modo-b small{font-size:11px;color:var(--muted);line-height:1.2}
+.modo-b .modo-niv{font-size:10px;letter-spacing:2px;color:var(--acc)}
+.modo-b[aria-checked="true"]{border:3px solid var(--us);background:var(--us-soft);padding:6px}
+.aviso.modo-aviso{width:100%;cursor:pointer;text-align:left;color:var(--ink)}
+.aviso.modo-aviso b:last-child{color:var(--us);flex:none}
+/* Asistente: línea en cancha y botones del punto */
+.linea-chips{flex:none;display:flex;flex-wrap:wrap;gap:4px}
+.linea-chips .lc{font-size:12px;padding:3px 7px;border-radius:6px;background:var(--surface);border-left:4px solid var(--hom)}
+.linea-chips .lc.M{border-left-color:var(--muj)}
+.linea-chips .lc b{font-size:14px}
+.asis-goles{flex:1;min-height:0;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.asis-goles .btn{height:100%;min-height:90px;font-size:32px;line-height:1.05}
+.asis-goles small,.hang-big small{display:block;font-size:13px;font-family:Barlow,system-ui,sans-serif;letter-spacing:0;text-transform:none;opacity:.9}
+/* Planillero: los dos equipos lado a lado */
+.plan-eqs{flex:1;min-height:0;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.plan-eq{display:flex;flex-direction:column;gap:8px;padding:8px;border-radius:12px;background:var(--surface);border-top:4px solid var(--us)}
+.plan-eq.th{border-top-color:var(--them)}
+.plan-n{font-size:18px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.plan-eq .plan-gol{flex:1;min-height:90px;font-size:36px}
+.plan-eq .btn:not(.plan-gol){min-height:52px}
+.ult{flex:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Llamados: posesión sugerida */
+.sug-pos{font-size:12px}

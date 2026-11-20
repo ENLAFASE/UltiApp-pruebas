@@ -3,7 +3,7 @@
 //
 // IMPORTANTE: cada vez que cambies cualquier archivo de la app, sube el número
 // de VERSION. Así los teléfonos saben que hay una versión nueva y la descargan.
-const VERSION = 'p1';
+const VERSION = 'p2';
 // VERSIÓN DE PRUEBAS: nombres propios para no borrar ni pisar la copia de la app real
 // (las dos viven en el mismo dominio).
 const PREFIJO = 'ultiapp-pruebas-';
@@ -26,6 +26,7 @@ const ARCHIVOS = [
   'img/husares.png',
   'img/husares-escudo.png',
   'js/app.js',
+  'js/modos.js',
   'js/almacen.js',
   'js/ui.js',
   'js/util/formato.js',
@@ -40,6 +41,9 @@ const ARCHIVOS = [
   'js/criterio/zonas.js',
   'js/criterio/recomendador.js',
   'js/planillero/acciones.js',
+  'js/planillero/asistente.js',
+  'js/planillero/elegir.js',
+  'js/planillero/planilla.js',
   'js/planillero/ajustes.js',
   'js/planillero/encabezado.js',
   'js/planillero/controles.js',

@@ -6,12 +6,36 @@ import { label, short, porNumero } from '../modelos/jugador.js';
 import { esc, fmt } from '../util/formato.js';
 import { header } from './marcador.js';
 import { escudo } from './encabezado.js';
+import { modoApp } from '../modos.js';
+
+// Planillero: tabla simple (gol, asistencia, intercepción) para un equipo.
+function tablaBasica(titulo, filas, stats) {
+  let h = '<h2 class="h2 disp">' + esc(titulo) + '</h2>';
+  const con = filas.filter(function (p) { return stats[p.id]; });
+  if (!con.length) return h + '<p class="muted" style="margin:0">Sin goles, asistencias ni intercepciones registradas.</p>';
+  h += '<div class="tbl-wrap fija"><table><thead><tr><th>Jugador</th><th>Gol</th><th>Ast</th><th>Int</th></tr></thead><tbody>';
+  con.forEach(function (p) {
+    const x = stats[p.id];
+    h += '<tr><td>' + esc(label(p.id)) + '</td><td>' + x.goals + '</td><td>' + x.ast + '</td><td>' + x.blk + '</td></tr>';
+  });
+  return h + '</tbody></table></div>';
+}
 
 // extra = contenido opcional bajo el marcador (el selector del Dashboard).
 export function viewSummary(extra) {
   if (!store.game) return '<div class="empty">' + escudo('crest-xl') + '<h2 class="h2 disp">Sin datos todavía</h2><p class="muted" style="margin:0">El resumen aparece cuando empieza un partido.</p></div>';
   const s = derive(), c = cfg();
   let h = header(s) + '<div class="pad stack">' + (extra || '');
+  const modo = modoApp();
+
+  // Planillero: ambos equipos, solo gol, asistencia e intercepción.
+  if (modo === 'planillero') {
+    h += tablaBasica(c.club, porNumero(store.roster), s.stats);
+    h += tablaBasica(c.rival, porNumero(store.game.rivales || []), s.rstats);
+    h += '<p class="muted" style="margin:0">Int = intercepciones. Los goles y asistencias sin jugador registrado cuentan solo en el marcador.</p>';
+    h += '<h2 class="h2 disp">Exportar</h2><div class="grid2"><button class="btn fill" data-a="expStats">Estadísticas CSV</button><button class="btn" data-a="expEvents">Eventos CSV</button></div>';
+    return h + '</div>';
+  }
 
   // jugadores
   h += '<h2 class="h2 disp">Jugadores</h2>';
@@ -24,18 +48,26 @@ export function viewSummary(extra) {
       rows.forEach(function (p) { const v = s.stats[p.id][campo]; if (v > 0 && (!mejor || v > mejor.v)) mejor = { p: p, v: v }; });
       return mejor;
     }
-    const dest = [['goals', 'Goles'], ['ast', 'Asistencias'], ['blk', 'Blocks']];
+    const dest = [['goals', 'Goles'], ['ast', 'Asistencias'], ['blk', modo === 'coach' ? 'Blocks' : 'Intercep.']];
     h += '<div class="dest">' + dest.map(function (d) {
       const m = lider(d[0]);
       return '<div class="dest-i"><span class="muted">' + d[1] + '</span>' +
         (m ? '<span class="dest-v num-d">' + m.v + '</span><span class="dest-n">' + esc(short(m.p.id)) + '</span>' : '<span class="dest-v num-d">—</span><span class="dest-n muted">Nadie aún</span>') + '</div>';
     }).join('') + '</div>';
-    h += '<div class="tbl-wrap fija"><table><thead><tr><th>Jugador</th><th>Pts</th><th>Min</th><th>Gol</th><th>Ast</th><th>Pases</th><th>Turn</th><th>Blk</th></tr></thead><tbody>';
+    // En Asistente no hay pases (no se registra jugada a jugada).
+    const conPases = modo === 'coach';
+    h += '<div class="tbl-wrap fija"><table><thead><tr><th>Jugador</th><th>Pts</th><th>Min</th><th>Gol</th><th>Ast</th>' + (conPases ? '<th>Pases</th>' : '') + '<th>Turn</th><th>' + (conPases ? 'Blk' : 'Int') + '</th></tr></thead><tbody>';
     rows.forEach(function (p) {
       const x = s.stats[p.id];
-      h += '<tr><td>' + esc(label(p.id)) + '</td><td>' + x.pts + '</td><td>' + Math.round((x.ms || 0) / 60000) + '</td><td>' + x.goals + '</td><td>' + x.ast + '</td><td>' + x.comp + '</td><td>' + (x.thr + x.drop + x.stall) + '</td><td>' + x.blk + '</td></tr>';
+      h += '<tr><td>' + esc(label(p.id)) + '</td><td>' + x.pts + '</td><td>' + Math.round((x.ms || 0) / 60000) + '</td><td>' + x.goals + '</td><td>' + x.ast + '</td>' + (conPases ? '<td>' + x.comp + '</td>' : '') + '<td>' + (x.thr + x.drop + x.stall) + '</td><td>' + x.blk + '</td></tr>';
     });
-    h += '</tbody></table></div><p class="muted" style="margin:0">Turn suma throwaways, drops y stalls.</p>';
+    h += '</tbody></table></div><p class="muted" style="margin:0">' + (conPases ? 'Turn suma throwaways, drops y stalls.' : 'Pts = puntos jugados · Min = minutos jugados · Int = intercepciones.') + '</p>';
+  }
+
+  // Asistente: sin pulls ni llamados (no se registran en este modo).
+  if (modo === 'asistente') {
+    h += '<h2 class="h2 disp">Exportar</h2><div class="grid2"><button class="btn fill" data-a="expStats">Estadísticas CSV</button><button class="btn" data-a="expEvents">Eventos CSV</button></div>';
+    return h + '</div>';
   }
 
   // pulls: por equipo (dentro, fuera, vuelo promedio) y por jugador de mi equipo
@@ -78,9 +110,10 @@ export function viewSummary(extra) {
     });
     h += '</div><div class="stack" style="gap:6px">';
     s.calls.slice().reverse().forEach(function (x) {
+      const cambio = x.kind === 'Lesión' && x.out ? ' · sale ' + short(x.out) + ', entra ' + short(x.in) : '';
       h += '<div class="item"><div class="stack" style="gap:2px"><span class="row" style="gap:8px"><span class="pill ' + (x.team === 'us' ? 'us' : 'th') + '">' + esc(teamName(x.team)) + '</span><strong>' + esc(x.kind) +
-        (x.player ? ' ' + esc(x.team === 'us' ? short(x.player) : '#' + x.player) : '') + '</strong></span><span class="muted">Punto ' + x.point + ', ' + fmt(x.t || 0) + '</span></div>' +
-        '<span class="pill" style="border:1px solid var(--ink)">' + RES_SHORT[x.res] + '</span></div>';
+        (x.player ? ' ' + esc(x.team === 'us' ? short(x.player) : '#' + x.player) : '') + '</strong></span><span class="muted">Punto ' + x.point + ', ' + fmt(x.t || 0) + esc(cambio) + '</span></div>' +
+        '<span class="pill" style="border:1px solid var(--ink)">' + (RES_SHORT[x.res] || 'Cambio') + '</span></div>';
     });
     h += '</div>';
   } else h += '<p class="muted" style="margin:0">No se han registrado llamados.</p>';

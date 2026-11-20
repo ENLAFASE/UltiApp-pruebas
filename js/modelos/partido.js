@@ -49,24 +49,35 @@ export function derive() {
   const g = store.game, c = cfg();
   const s = {
     us: 0, them: 0, point: 1, phase: 'line', offense: g.firstOffense, possession: null, holder: null,
-    line: [], lastLine: [], chain: [], stats: {}, pulls: [], calls: [], to: { us: 0, them: 0 },
+    line: [], lastLine: [], chain: [], stats: {}, rstats: {}, pulls: [], calls: [], to: { us: 0, them: 0 },
     half: false, halfPoint: null, ended: false, log: [], last: null, pointLog: []
   };
   let inicioPunto = null; // tiempo de juego en que salió el pull del punto
+  // Cambios por lesión durante el punto: cuándo entró cada uno y quiénes salieron.
+  let entrada = {}, salieron = [];
   function st(id) {
     return s.stats[id] || (s.stats[id] = {
       pts: 0, ms: 0, goals: 0, ast: 0, comp: 0, catches: 0, thr: 0, drop: 0, stall: 0, blk: 0,
       pulls: 0, pullIn: 0, pullOut: 0, hangMs: 0, hangN: 0 // pulls sacados, dentro, fuera y tiempo de vuelo medido
     });
   }
+  // Estadísticas básicas de los jugadores del rival (solo Planillero).
+  function rst(id) { return s.rstats[id] || (s.rstats[id] = { goals: 0, ast: 0, blk: 0 }); }
   function turn(team) { s.possession = team; s.holder = null; s.chain.push({ x: true }); }
   function endPoint(w, e) {
     // Minutos jugados: duración del punto (desde el pull hasta el gol) para cada jugador de la línea.
+    // Quien entró por lesión cuenta desde que entró.
     const dur = inicioPunto != null ? Math.max(0, (e.t || 0) - inicioPunto) : 0;
-    s.line.forEach(function (id) { st(id).ms += dur; });
+    s.line.forEach(function (id) {
+      const desde = entrada[id] != null ? entrada[id] : inicioPunto;
+      st(id).ms += desde != null ? Math.max(0, (e.t || 0) - desde) : 0;
+    });
     inicioPunto = null;
-    s.pointLog.push({ point: s.point, winner: w, offense: s.offense, line: s.line.slice(), ms: dur });
-    s.lastLine = s.line.slice(); s.point++; s.phase = 'line'; s.possession = null; s.holder = null; s.chain = [];
+    // Quienes salieron lesionados también jugaron el punto.
+    const jugaron = s.line.concat(salieron.filter(function (id) { return s.line.indexOf(id) < 0; }));
+    entrada = {}; salieron = [];
+    s.pointLog.push({ point: s.point, winner: w, offense: s.offense, line: jugaron, ms: dur });
+    s.lastLine = jugaron; s.point++; s.phase = 'line'; s.possession = null; s.holder = null; s.chain = [];
     // Saca el pull el equipo que anotó; recibe el otro.
     s.offense = (w === 'us') ? 'them' : 'us';
     const porPuntos = !!(c.halfAt && Math.max(s.us, s.them) >= c.halfAt);
@@ -84,7 +95,7 @@ export function derive() {
   g.events.forEach(function (e) {
     s.log.push({ e: e, point: s.point });
     switch (e.type) {
-      case 'line': s.line = e.players.slice(); s.phase = 'pull'; s.chain = []; e.players.forEach(function (id) { st(id).pts++; }); break;
+      case 'line': s.line = e.players.slice(); s.phase = 'pull'; s.chain = []; entrada = {}; salieron = []; e.players.forEach(function (id) { st(id).pts++; }); break;
       case 'pull':
         s.pulls.push(Object.assign({ point: s.point }, e)); s.phase = 'play'; s.possession = s.offense; s.holder = null; inicioPunto = e.t || 0;
         if (e.team === 'us' && e.player) {
@@ -96,14 +107,36 @@ export function derive() {
         break;
       case 'pickup': s.holder = e.player; s.chain.push({ id: e.player }); break;
       case 'pass': st(e.from).comp++; st(e.to).catches++; s.holder = e.to; s.chain.push({ id: e.to }); break;
-      case 'goal': if (e.from) { st(e.from).ast++; st(e.from).comp++; } st(e.to).goals++; st(e.to).catches++; s.us++; endPoint('us', e); break;
-      case 'themGoal': s.them++; endPoint('them', e); break;
-      case 'throwaway': st(e.player).thr++; turn('them'); break;
+      case 'goal':
+        if (e.from) { st(e.from).ast++; st(e.from).comp++; }
+        if (e.to) { st(e.to).goals++; st(e.to).catches++; } // en Planillero puede quedar sin registrar
+        s.us++; endPoint('us', e); break;
+      case 'themGoal':
+        // En Planillero se registra también quién anotó y asistió en el rival.
+        if (e.to) rst(e.to).goals++;
+        if (e.from) rst(e.from).ast++;
+        s.them++; endPoint('them', e); break;
+      case 'themBlock': if (e.player) rst(e.player).blk++; turn('them'); break; // intercepción del rival
+      case 'throwaway': if (e.player) st(e.player).thr++; turn('them'); break;
       case 'stall': st(e.player).stall++; turn('them'); break;
       case 'drop': st(e.player).drop++; turn('them'); break;
-      case 'block': st(e.player).blk++; turn('us'); break;
+      case 'block': if (e.player) st(e.player).blk++; turn('us'); break;
       case 'themTurn': turn('us'); break;
-      case 'call': s.calls.push(Object.assign({ point: s.point }, e)); if (e.possession && s.possession && e.possession !== s.possession) turn(e.possession); break;
+      case 'call':
+        s.calls.push(Object.assign({ point: s.point }, e));
+        // Cambio por lesión: sale un jugador de la línea y entra otro desde fuera.
+        if (e.out && e.in) {
+          const i = s.line.indexOf(e.out);
+          if (i >= 0) {
+            const desde = entrada[e.out] != null ? entrada[e.out] : inicioPunto;
+            if (desde != null) st(e.out).ms += Math.max(0, (e.t || 0) - desde);
+            s.line[i] = e.in; st(e.in).pts++; entrada[e.in] = e.t || 0;
+            if (salieron.indexOf(e.out) < 0) salieron.push(e.out);
+            if (s.holder === e.out) s.holder = e.in;
+          }
+        }
+        if (e.possession && s.possession && e.possession !== s.possession) turn(e.possession);
+        break;
       case 'timeout': s.to[e.team]++; break;
       case 'end': s.ended = true; s.phase = 'ended'; break;
     }

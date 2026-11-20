@@ -10,6 +10,8 @@ export const DEF_CFG = {
   club: 'Húsares Mix', rival: 'Rival',
   equipo: 'mix',        // equipo del club: 'mix', 'open', 'husarex' u 'otro' (ver EQUIPOS)
   pointsToWin: 15,
+  modoApp: 'coach',      // modo de la app: 'planillero', 'asistente' o 'coach' (ver js/modos.js)
+  rivalLista: '',        // plantel del rival (solo Planillero): una línea por jugador, "7 Juan"
   // Medio tiempo: 'points' (por puntos), 'time' (por minutos) o
   // 'first' (lo que ocurra primero: los puntos o, cumplido el tiempo, al terminar el punto).
   halfMode: 'first',

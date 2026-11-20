@@ -13,6 +13,10 @@ import { viewNuevoPartido, viewSettings } from './ajustes.js';
 import { viewLine } from './linea.js';
 import { viewPull } from './pull.js';
 import { viewCall } from './llamados.js';
+import { viewElegir } from './elegir.js';
+import { viewAsistentePull, viewAsistentePunto } from './asistente.js';
+import { viewPlanilla } from './planilla.js';
+import { modoApp } from '../modos.js';
 
 // Botón de jugador: nombre abreviado grande y número chico.
 function botonJugador(id, accion, extra) {
@@ -98,8 +102,16 @@ export function viewGame() {
   if (ui.view === 'call' && s.phase === 'play') return viewCall(s);
   ui.view = null;
   let h = header(s);
+  const modo = modoApp();
   if (s.timeout) h += viewTimeout(s);
+  else if (s.phase === 'ended') h += viewEnded(s);
+  // Elegir jugador (Planillero y Asistente): quién anotó, asistió, interceptó...
+  else if (ui.pick && ui.pick.titulo) h += viewElegir();
+  // Planillero: una sola pantalla con los dos equipos, sin líneas.
+  else if (modo === 'planillero') h += viewPlanilla(s);
   else if (s.phase === 'line') h += viewLine(s);
+  // Asistente: el punto se registra de forma simple.
+  else if (modo === 'asistente') h += s.phase === 'pull' ? viewAsistentePull(s) : viewAsistentePunto(s);
   else if (s.phase === 'pull') h += viewPull(s);
   else if (s.phase === 'play') h += viewPlay(s);
   else h += viewEnded(s);

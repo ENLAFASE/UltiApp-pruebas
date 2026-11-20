@@ -9,6 +9,7 @@ import { HABILIDADES, ev, evaluado, resumenEv, filasEvaluacion } from '../coach/
 import { ROLES, analizarPlantel, nivelGeneral, n1 } from '../criterio/metricas.js';
 import { PARAM } from '../criterio/parametros.js';
 import { encabezado } from './encabezado.js';
+import { usaMotor } from '../modos.js';
 
 /* ---------- texto del plantel: "36 Enzo H man5 av5 gol3 def3" ---------- */
 // Lee una línea de texto. Devuelve { num, name, g, ev } o null si no tiene número.
@@ -71,7 +72,7 @@ export function modalJugador(id) {
   h += '<span class="lbl">Juega en</span>' + botonesRamas(ramasDe(p), 'peRama', id);
   if (store.game) h += '<button class="btn full ' + (p.noConv ? 'fill' : '') + '" data-a="convP" data-id="' + id + '">' + (p.noConv ? 'Convocar para este partido' : 'Sacar de este partido') + '</button>';
   h += '<span class="lbl" style="margin-top:6px">Evaluación privada' + (evaluado(p) ? '' : ' · <b class="txt-warn">sin evaluar</b>') + '</span>';
-  h += filasEvaluacion(p);
+  if (usaMotor()) h += filasEvaluacion(p);
   const orden = porNumero(store.roster), i = orden.findIndex(function (x) { return x.id === id; });
   const sig = orden[i + 1];
   h += '<div class="grid2"><button class="btn" data-a="closeModal">Listo</button>' +
@@ -86,7 +87,7 @@ function filaJugador(p, c) {
   const enPartido = !!store.game;
   return '<button class="item plantel' + (ok ? '' : ' sin-ev') + (enPartido && p.noConv ? ' no-conv' : '') + '" data-a="editP" data-id="' + p.id + '"' + (enPartido ? ' data-swipe="' + p.id + '"' : '') + '>' +
     '<span class="grow"><b>' + esc(label(p.id)) + '</b> <span class="g ' + letraGenero(p) + '">' + letraGenero(p) + '</span> ' + etiquetasRamas(p) +
-    '<br>' + (ok ? '<span class="muted">' + resumenEv(p) + '</span>' : '<span class="pill warn">Sin evaluar</span>') + '</span>' +
+    (usaMotor() ? '<br>' + (ok ? '<span class="muted">' + resumenEv(p) + '</span>' : '<span class="pill warn">Sin evaluar</span>') : '') + '</span>' +
     (ok ? '<span class="nivel disp" title="Nivel general">' + n1(nivelGeneral(p)) + '</span>' : '') +
     '<span class="muted">›</span></button>';
 }
@@ -98,6 +99,7 @@ function barra(valor, clase) {
 }
 
 function visionPlantel(lista, c) {
+  if (!usaMotor()) return '';
   if (!lista.length) return '';
   const a = analizarPlantel(lista, c.mixed);
   const sinEv = lista.filter(function (p) { return !evaluado(p); }).length;

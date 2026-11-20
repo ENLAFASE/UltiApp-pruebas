@@ -3,7 +3,9 @@
 import { store, save, cfg, DEF_CFG, EQUIPOS, aplicarCategoria, generoFueraDeCategoria, ramasDe } from '../almacen.js';
 import { ui } from '../ui.js';
 import { derive } from '../modelos/partido.js';
-import { teamName } from '../modelos/eventos.js';
+import { teamName, posesionSugerida } from '../modelos/eventos.js';
+import { MODOS_APP, modoApp, leerRivales } from '../modos.js';
+import { llamadoListo } from './llamados.js';
 import { P, label } from '../modelos/jugador.js';
 import { uid, slug, fileStamp } from '../util/formato.js';
 import { exportFile, statsCSV, eventsCSV } from '../util/exportar.js';
@@ -16,6 +18,17 @@ import { leerLineaPlantel, lineaPlantel } from './plantel.js';
 import { convocados } from '../criterio/recomendador.js';
 import { porNumero } from '../modelos/jugador.js';
 import { archivar, borrar as borrarHist } from '../modelos/historial.js';
+
+/* ---------- elegir jugador (modos Planillero y Asistente) ---------- */
+// Prepara la pantalla para elegir a un jugador. "lista" = ids entre los que se elige.
+function elegir(act, title, lista, sin, tema, extra) {
+  return Object.assign({ act: act, title: title, ids: lista, lista: lista, sin: sin, tema: tema,
+    titulo: (tema === 'th' ? cfg().rival : cfg().club).toUpperCase() }, extra || {});
+}
+// Nuestros convocados y el plantel del rival (Planillero), por número.
+function idsNuestros() { return porNumero(convocados()).map(function (p) { return p.id; }); }
+function idsRivales() { return porNumero((store.game && store.game.rivales) || []).map(function (p) { return p.id; }); }
+function sinJugador(lista, id) { return lista.filter(function (x) { return x !== id; }); }
 
 /* ---------- convocados ---------- */
 function cambiarConvocatoria(p) {
@@ -222,19 +235,74 @@ function alTocar(ev) {
     case 'toResume': s.last.fin = Date.now(); save(); break;
 
     // llamado
-    case 'openCall': ui.call = { team: 'us', kind: null, res: null, poss: s.possession }; ui.view = 'call'; break;
+    // antes = quién tenía el disco; possManual = el usuario eligió la posesión a mano.
+    case 'openCall': ui.call = { team: 'us', kind: null, res: null, poss: s.possession, antes: s.possession, possManual: false }; ui.view = 'call'; break;
     case 'cancelCall': ui.view = null; break;
-    case 'callTeam': ui.call.team = v; break;
-    case 'callKind': ui.call.kind = v; break;
-    case 'callRes': ui.call.res = v; break;
-    case 'callPoss': ui.call.poss = v; break;
+    case 'callTeam': case 'callKind': case 'callRes': {
+      const k = ui.call;
+      if (a === 'callTeam') { k.team = v; k.out = k.in = null; }
+      if (a === 'callKind') { k.kind = v; if (v !== 'Lesión') k.out = k.in = null; }
+      if (a === 'callRes') k.res = v;
+      // La posesión se sugiere sola según el tipo y la resolución, salvo que se haya elegido a mano.
+      if (!k.possManual) k.poss = posesionSugerida(k, k.antes).equipo;
+      break;
+    }
+    case 'callPoss': ui.call.poss = v; ui.call.possManual = true; break;
+    case 'callOut': ui.call.out = ui.call.out === id ? null : id; break;
+    case 'callIn': ui.call.in = ui.call.in === id ? null : id; break;
     case 'saveCall': {
-      const k = ui.call; if (!k.kind || !k.res) return;
+      const k = ui.call; if (!llamadoListo(k)) return;
       ui.view = null;
+      if (k.kind === 'Lesión') {
+        // Cambio por lesión: no tiene resolución y la posesión no cambia.
+        add({ type: 'call', team: k.team, kind: 'Lesión', res: 'lesion', possession: k.antes,
+          out: k.team === 'us' ? k.out : null, in: k.team === 'us' ? k.in : null });
+        toast(k.team === 'us' ? 'Cambio por lesión guardado' : 'Lesión del rival guardada');
+        return;
+      }
       add({ type: 'call', team: k.team, kind: k.kind, res: k.res, possession: k.poss });
       toast('Llamado guardado');
       return;
     }
+
+    // Planillero y Asistente
+    case 'planInicio': case 'pullAsis': {
+      // Sale el pull: se guarda sin detalles (en el primero parte el reloj).
+      const relT = marcarSalidaPull();
+      add({ type: 'pull', team: quienSaca(s), inBounds: true, auto: true, t: relT });
+      return;
+    }
+    case 'asGol': ui.pick = elegir('golNos', '¿Quién anotó?', s.line, 'Sin registrar', 'us', { sub: 'Gol' }); break;
+    case 'asTurn': ui.pick = elegir('turn', '¿Quién perdió el disco?', s.line, 'Sin registrar', 'us', { sub: 'Turnover' }); break;
+    case 'asBlk': ui.pick = elegir('blk', '¿Quién interceptó?', s.line, 'Sin registrar', 'us', { sub: 'Intercepción' }); break;
+    case 'plGol': ui.pick = elegir('golNos', '¿Quién anotó?', idsNuestros(), 'Sin registrar', 'us', { sub: 'Gol' }); break;
+    case 'plBlk': ui.pick = elegir('blk', '¿Quién interceptó?', idsNuestros(), 'Sin registrar', 'us', { sub: 'Intercepción' }); break;
+    case 'plGolR':
+      if (!idsRivales().length) { add({ type: 'themGoal' }); return; } // sin plantel del rival: solo el marcador
+      ui.pick = elegir('golRival', '¿Quién anotó?', idsRivales(), 'Sin registrar', 'th', { sub: 'Gol' }); break;
+    case 'plBlkR':
+      if (!idsRivales().length) { add({ type: 'themBlock' }); return; }
+      ui.pick = elegir('blkRival', '¿Quién interceptó?', idsRivales(), 'Sin registrar', 'th', { sub: 'Intercepción' }); break;
+    case 'elegido': case 'elegidoSin': {
+      const k = ui.pick; if (!k) break;
+      const quien = a === 'elegido' ? id : null;
+      ui.pick = null;
+      if (k.act === 'golNos') { ui.pick = elegir('astNos', '¿Quién asistió?', sinJugador(k.lista, quien), 'Sin asistencia', 'us', { sub: 'Gol', to: quien }); break; }
+      if (k.act === 'golRival') { ui.pick = elegir('astRival', '¿Quién asistió?', sinJugador(k.lista, quien), 'Sin asistencia', 'th', { sub: 'Gol', to: quien }); break; }
+      if (k.act === 'astNos') add({ type: 'goal', from: quien, to: k.to });
+      else if (k.act === 'astRival') add({ type: 'themGoal', from: quien, to: k.to });
+      else if (k.act === 'turn') add({ type: 'throwaway', player: quien });
+      else if (k.act === 'blk') add({ type: 'block', player: quien });
+      else if (k.act === 'blkRival') add({ type: 'themBlock', player: quien });
+      return;
+    }
+
+    // Modo de la app (Dashboard)
+    case 'modoApp':
+      if (store.game) { toast('Cierra el partido en curso para cambiar de modo'); break; }
+      store.cfg.modoApp = v; save();
+      toast('Modo ' + MODOS_APP[v].nombre);
+      break;
 
     // exportar
     case 'expStats':
@@ -343,7 +411,10 @@ function alTocar(ev) {
     case 'startGame':
       if (!convocados().length) return;
       // Recibe el primer pull el equipo que NO lo saca.
-      store.game = { firstOffense: cfg().firstPull === 'us' ? 'them' : 'us', events: [], start: null, finishedAt: null, created: Date.now() };
+      store.game = { firstOffense: cfg().firstPull === 'us' ? 'them' : 'us', events: [], start: null, finishedAt: null, created: Date.now(),
+        modo: modoApp() }; // cada partido recuerda su modo
+      // Planillero: también el plantel del rival.
+      if (store.game.modo === 'planillero') store.game.rivales = leerRivales(cfg().rivalLista);
       ui.sel = []; ui.selFor = null; ui.pull = null; ui.pick = null; ui.view = null;
       save(); ui.tab = 'game';
       break;
@@ -387,6 +458,7 @@ function alCambiar(ev) {
   const opUi = el.getAttribute('data-ui');
   if (opUi) { ui[opUi] = el.value; render(); return; }
   const key = el.getAttribute('data-cfg'); if (!key) return;
+  if (key === 'rivalLista') { store.cfg.rivalLista = el.value; save(); return; }
   const c = store.cfg;
   if (el.type === 'checkbox') c[key] = el.checked;
   else if (el.type === 'number') c[key] = Math.max(0, parseInt(el.value, 10) || 0);
@@ -413,6 +485,7 @@ function alEscribir(ev) {
     save();
     return;
   }
+  if (el.getAttribute('data-cfg') === 'rivalLista') { store.cfg.rivalLista = el.value; save(); return; }
   const k = el.getAttribute('data-in'); if (!k) return;
   if (k === 'npNum') ui.newP.num = el.value;
   else if (k === 'npName') ui.newP.name = el.value;

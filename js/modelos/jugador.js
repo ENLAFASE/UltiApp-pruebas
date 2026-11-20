@@ -7,6 +7,9 @@ import { esc } from '../util/formato.js';
 
 export function P(id) {
   for (let i = 0; i < store.roster.length; i++) if (store.roster[i].id === id) return store.roster[i];
+  // Plantel del rival del partido en curso (solo en modo Planillero).
+  const r = store.game && store.game.rivales;
+  if (r) for (let i = 0; i < r.length; i++) if (r[i].id === id) return r[i];
   return null;
 }
 

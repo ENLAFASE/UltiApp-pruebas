@@ -10,6 +10,7 @@ import { derive } from '../modelos/partido.js';
 import { ui } from '../ui.js';
 import { evaluado } from '../coach/evaluacion.js';
 import { encabezado } from './encabezado.js';
+import { MODOS_APP, modoApp, usaMotor, leerRivales } from '../modos.js';
 
 function numField(key, lbl, hint) {
   const v = cfg()[key];
@@ -117,8 +118,16 @@ function preparar(c) {
     '<b>¿Quiénes juegan? ' + conv.length + ' convocados</b><span class="muted">' +
     (conv.length < 7 ? 'Se necesitan al menos 7. ' : (sinEv ? sinEv + ' sin evaluar (cuentan como 3). ' : '')) + 'Toca para sumar o sacar.</span>' +
     '<span class="prep-sel">' + convocatoria(c) + '</span></span></li>';
+  let rivalExtra = '';
+  if (modoApp() === 'planillero') {
+    // Planillero: también se registra el plantel convocado del rival.
+    const nRiv = leerRivales(c.rivalLista).length;
+    rivalExtra = '<div class="field"><label class="lbl" for="f_rivalLista">Plantel del rival (' + nRiv + ')</label>' +
+      '<textarea id="f_rivalLista" rows="4" data-cfg="rivalLista" placeholder="7 Juan&#10;10 Pedro&#10;23 Ana">' + esc(c.rivalLista || '') + '</textarea>' +
+      '<span class="muted">Una línea por jugador: número y nombre. Si lo dejas vacío, del rival solo se lleva el marcador.</span></div>';
+  }
   h += '<li class="prep-i' + (rivalOk ? ' ok' : '') + '"><span class="prep-n">' + (rivalOk ? '✓' : 3) + '</span><span class="prep-t"><b>' + esc(c.club) + ' vs ' + (rivalOk ? esc(c.rival) : '…') + '</b>' +
-    '<span class="prep-sel">' + campoRival(c) + '</span></span></li>';
+    '<span class="prep-sel">' + campoRival(c) + rivalExtra + '</span></span></li>';
   h += '<li class="prep-i ok"><span class="prep-n">4</span><span class="prep-t"><b>¿Quién saca el primer pull?</b>' +
     '<span class="grid2 team-toggle sm" style="margin-top:6px">' +
     '<button class="btn us" aria-pressed="' + (c.firstPull === 'us') + '" data-a="firstPull" data-v="us">' + esc(c.club) + '</button>' +
@@ -161,13 +170,15 @@ export function viewNuevoPartido() {
   const c = cfg();
   let h = encabezado('Gestión del equipo', c.club) + '<div class="pad stack">';
   h += '<h2 class="h2 disp titulo-sec">Nuevo partido</h2>';
+  const mApp = MODOS_APP[modoApp()];
+  h += '<button class="aviso info modo-aviso" data-a="tab" data-v="summary"><span>Modo <b>' + mApp.nombre + '</b> · ' + mApp.resumen + '</span><b>Cambiar</b></button>';
   h += preparar(c);
   // Reglas: vienen con valores típicos; se abren solo si hay que cambiarlas.
   const modo = modoActual();
-  const resReglas = 'A ' + c.pointsToWin + (c.hardCap ? ' o ' + c.hardCap + ' min' : '') + ' · ' + resumenTiempos(c) + ' · ' + MODOS[modo].nombre.toLowerCase();
+  const resReglas = 'A ' + c.pointsToWin + (c.hardCap ? ' o ' + c.hardCap + ' min' : '') + ' · ' + resumenTiempos(c) + (usaMotor() ? ' · ' + MODOS[modo].nombre.toLowerCase() : '');
   h += seccion('reglas', 'Reglas del partido', resReglas,
     camposReglas(c) + camposTiempos(c) +
-    selectField('lineMode', 'Sugerencia de líneas', nombresModos(), MODOS[modo].ayuda + ' Los detalles se ajustan en Ajustes, ya con el partido creado.'));
+    (usaMotor() ? selectField('lineMode', 'Sugerencia de líneas', nombresModos(), MODOS[modo].ayuda + ' Los detalles se ajustan en Ajustes, ya con el partido creado.') : ''));
   h += '<p class="muted" style="margin:8px 0 0"><a href="privacidad.html">Privacidad y datos</a></p>';
   const hay = store.roster.filter(function (p) { return !p.noConv; }).length;
   h += '<div class="cta-fija"><button class="btn big fill disp full" data-a="startGame"' + (hay ? '' : ' disabled') + '>Crear partido</button>' +
@@ -213,7 +224,7 @@ export function viewSettings() {
       '<p class="muted" style="margin:0">La zona es la misma en puntos de ataque y de defensa; lo que cambia es la línea dentro de cada zona. ' +
       'En "Asegurar el ataque", en defensa descansa el núcleo ofensivo. El recuadro marca el marcador actual.</p>');
   }
-  h += seccion('motor', 'Motor de sugerencia', resMotor, m);
+  if (usaMotor()) h += seccion('motor', 'Motor de sugerencia', resMotor, m);
 
   h += '<h2 class="h2 disp">Cerrar o descartar</h2>';
   h += '<button class="btn full" data-a="askReset">Cerrar partido y crear otro</button>';

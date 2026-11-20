@@ -6,6 +6,21 @@ import { esc } from '../util/formato.js';
 import { encabezado } from './encabezado.js';
 import { viewSummary } from './resumen.js';
 import { lista, agregar, deriveDe, holdBreak, nombreEquipo } from '../modelos/historial.js';
+import { MODOS_APP, modoApp } from '../modos.js';
+
+// Modo de la app: Planillero, Asistente o Coach. Se cambia sin partido en curso.
+function selectorModo() {
+  const actual = modoApp(), bloqueado = !!store.game;
+  let h = '<div class="card modos-app"><span class="lbl">Modo de la app</span><div class="modo-opc" role="radiogroup" aria-label="Modo de la app">';
+  Object.keys(MODOS_APP).forEach(function (k) {
+    const m = MODOS_APP[k];
+    h += '<button class="modo-b" role="radio" data-a="modoApp" data-v="' + k + '" aria-checked="' + (k === actual) + '"' + (bloqueado && k !== actual ? ' disabled' : '') + '>' +
+      '<span class="modo-niv">' + '●'.repeat(m.nivel) + '○'.repeat(3 - m.nivel) + '</span><b class="disp">' + m.nombre + '</b><small>' + m.resumen + '</small></button>';
+  });
+  h += '</div><p class="muted" style="margin:0">' + MODOS_APP[actual].ayuda + '</p>';
+  if (bloqueado) h += '<p class="muted" style="margin:0"><b>Este partido se creó en modo ' + MODOS_APP[actual].nombre + '.</b> Ciérralo para cambiar de modo.</p>';
+  return h + '</div>';
+}
 
 function fecha(ms) {
   try { return new Date(ms).toLocaleDateString('es-CL', { day: 'numeric', month: 'short', year: '2-digit' }); } catch (e) { return ''; }
@@ -136,7 +151,7 @@ function viewDetalle(id) {
   });
   h += '</tbody></table></div>';
   const pu = s.pulls.filter(function (p) { return p.team === 'us'; }), dentro = pu.filter(function (p) { return p.inBounds; }).length;
-  h += '<div class="kpis">' + kpi('Pulls dentro', pu.length ? dentro + '/' + pu.length : '—', 'nuestros pulls') +
+  if ((rec.game.modo || 'coach') === 'coach') h += '<div class="kpis">' + kpi('Pulls dentro', pu.length ? dentro + '/' + pu.length : '—', 'nuestros pulls') +
     kpi('Llamados', s.calls.length, s.calls.filter(function (c) { return c.team === 'us'; }).length + ' nuestros') + '</div>';
   h += '<button class="btn danger full" data-a="askBorrarHist" data-id="' + rec.id + '">Borrar del historial</button>';
   return h;
@@ -144,9 +159,10 @@ function viewDetalle(id) {
 
 export function viewDashboard() {
   const m = store.game ? (ui.dash || 'actual') : 'historial';
-  if (m === 'actual') return viewSummary(modos());
+  if (m === 'actual') return viewSummary(selectorModo() + modos());
   const f = ui.dashEq || 'todos';
   let h = encabezado('Dashboard', f === 'todos' ? 'Todos los equipos' : f === 'otro' ? 'Otros equipos' : EQUIPOS[f].nombre) + '<div class="pad stack">';
+  if (!ui.dashVer) h += selectorModo();
   h += modos();
   h += ui.dashVer ? viewDetalle(ui.dashVer) : viewHistorial();
   return h + '</div>';

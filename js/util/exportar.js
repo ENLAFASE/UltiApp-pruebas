@@ -23,6 +23,16 @@ export function statsCSV(s) {
     rows.push([p.num, p.name, p.g === 'F' ? 'M' : 'H', x.pts, Math.round((x.ms || 0) / 60000), x.goals, x.ast, x.comp, x.catches, x.thr, x.drop, x.stall, x.blk,
       x.pulls, x.pullIn, x.pullOut, x.hangN ? (x.hangMs / x.hangN / 1000).toFixed(2) : '']);
   });
+  // Planillero: jugadores del rival (gol, asistencia, intercepción).
+  const rivales = (store.game && store.game.rivales) || [];
+  if (rivales.length) {
+    rows.push([]);
+    rows.push(['rival_numero', 'rival_nombre', 'goles', 'asistencias', 'intercepciones']);
+    rivales.forEach(function (p) {
+      const x = s.rstats[p.id] || { goals: 0, ast: 0, blk: 0 };
+      rows.push([p.num, p.name, x.goals, x.ast, x.blk]);
+    });
+  }
   // Totales de pulls por equipo (incluye los pulls sin jugador registrado).
   rows.push([]);
   rows.push(['equipo', 'pulls', 'pulls_dentro', 'pulls_fuera', 'vuelo_promedio_s']);
