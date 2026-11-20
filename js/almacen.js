@@ -2,7 +2,9 @@
 // Por ahora se usa localStorage, con la misma clave del prototipo.
 // Más adelante, al guardar varios partidos, se pasará a IndexedDB.
 
-const KEY = 'ufs-v1';
+// VERSIÓN DE PRUEBAS: usa su propio espacio de datos. Ambas apps viven en el mismo
+// dominio (enlafase.github.io) y compartirían el plantel y los partidos si usaran la misma clave.
+const KEY = 'ufs-pruebas-v1';
 
 export const DEF_CFG = {
   club: 'Húsares Mix', rival: 'Rival',

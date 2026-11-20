@@ -3,9 +3,12 @@
 //
 // IMPORTANTE: cada vez que cambies cualquier archivo de la app, sube el número
 // de VERSION. Así los teléfonos saben que hay una versión nueva y la descargan.
-const VERSION = 'v10';
-const CACHE_APP = 'ultiapp-' + VERSION;
-const CACHE_FUENTES = 'ultiapp-fuentes';
+const VERSION = 'p1';
+// VERSIÓN DE PRUEBAS: nombres propios para no borrar ni pisar la copia de la app real
+// (las dos viven en el mismo dominio).
+const PREFIJO = 'ultiapp-pruebas-';
+const CACHE_APP = PREFIJO + VERSION;
+const CACHE_FUENTES = PREFIJO + 'fuentes';
 
 // Todos los archivos que necesita la app para funcionar sin conexión.
 const ARCHIVOS = [
@@ -70,7 +73,7 @@ self.addEventListener('activate', function (event) {
   event.waitUntil(
     caches.keys().then(function (nombres) {
       return Promise.all(nombres.map(function (n) {
-        if (n !== CACHE_APP && n !== CACHE_FUENTES) return caches.delete(n);
+        if (n.indexOf(PREFIJO) === 0 && n !== CACHE_APP && n !== CACHE_FUENTES) return caches.delete(n);
       }));
     }).then(function () { return self.clients.claim(); })
   );

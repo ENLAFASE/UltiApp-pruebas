@@ -444,3 +444,6 @@ code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;background
 .sb-acc .sb-aj{margin:0}
 .sb-fin{min-height:28px;border-radius:999px;border:1px solid var(--orange);background:transparent;color:var(--head-ink);font-size:12px;font-weight:700;padding:2px 12px;flex:none}
 #app.full .sb-fin{min-height:26px}
+
+/* Etiqueta visible de la versión de pruebas */
+.badge-prueba{position:fixed;top:calc(env(safe-area-inset-top,0px) + 4px);right:4px;z-index:40;background:#7C3AED;color:#fff;font:700 10px/1 Barlow,system-ui,sans-serif;letter-spacing:.08em;padding:3px 6px;border-radius:4px;pointer-events:none;opacity:.9}

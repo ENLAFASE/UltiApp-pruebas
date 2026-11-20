@@ -1,6 +1,6 @@
 {
-  "name": "Húsares · UltiApp",
-  "short_name": "Húsares",
+  "name": "UltiApp Pruebas",
+  "short_name": "Pruebas",
   "description": "Registro de partidos y apoyo al coach de Ultimate Frisbee, sin conexión.",
   "lang": "es-CL",
   "start_url": "./",
