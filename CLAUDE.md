@@ -1,5 +1,16 @@
 # UltiApp — App de Ultimate Frisbee
 
+> **ESTA CARPETA ES LA VERSIÓN DE PRUEBAS** (`Documents\UltiApp-pruebas`, repositorio de GitHub `UltiApp-pruebas`). La app real está en `Documents\UltiApp` (repositorio `UltiApp`). Las modificaciones se prueban aquí y, cuando el usuario las aprueba, se llevan a la app real.
+> - Está aislada de la app real, que vive en el mismo dominio de GitHub Pages: datos en `localStorage` con clave `ufs-pruebas-v1` (la real usa `ufs-v1`), caché del service worker con prefijo `ultiapp-pruebas-` (solo borra las suyas), nombre "UltiApp Pruebas" y etiqueta "PRUEBAS" visible. No cambiar estas tres cosas.
+> - La versión del service worker usa la serie `p1`, `p2`… para no confundirse con la real (`v10`…).
+> - Respaldo de la app real antes de crear esta versión: etiqueta `respaldo-2026-11-20` en GitHub y copias en `Documents\UltiApp-respaldos`.
+>
+> **Modos de la app** (solo en esta versión por ahora, `js/modos.js`; se eligen en el Dashboard y cada partido guarda el suyo en `game.modo`):
+> - **Planillero** (nivel 1): tiempo, marcador, plantel convocado de **ambos** equipos (`cfg.rivalLista` → `game.rivales`, ids `r1`…), y por jugador gol, asistencia e intercepción (`goal`, `themGoal` con `to`/`from`, `block`, `themBlock`; rival en `s.rstats`). Sin líneas, sin puntos ni minutos jugados. Pantalla `js/planillero/planilla.js`; el primer pull se marca con un botón (pull `auto`).
+> - **Asistente** (nivel 2): líneas con el motor de sugerencia, ATAQUE/DEFENSA, ABBA, puntos y minutos jugados; el punto parte con un toque en PULL (pull `auto`) y se registra gol (con asistencia), gol rival, turnover (`throwaway`) e intercepción (`block`). Sin pases, sin pull cronometrado, sin llamados. Solo nuestro plantel. Pantallas en `js/planillero/asistente.js`.
+> - **Coach** (nivel 3): todo lo de antes. Además: la posesión al reanudar se **sugiere** según el llamado (`posesionSugerida` en `eventos.js`: Down, Dentro/Fuera y Stall aceptados → el disco pasa a quien llamó; contestados → vuelve a quien lo tenía; observador → sin sugerencia) y el tipo **Lesión** registra el cambio (`call` con `out`/`in`): sale de la línea, entra desde la banca; los minutos se cuentan por tramo.
+> - Elegir jugador en Planillero/Asistente usa `ui.pick` con `titulo` (`js/planillero/elegir.js`); el `ui.pick` sin `titulo` sigue siendo el de Coach.
+
 App para registrar y analizar partidos de Ultimate Frisbee. Nace en un club chileno con 9 años de trayectoria (Pro Ultimate). Meta a largo plazo: ofrecerla a la Federación Chilena de Disco Volador.
 
 El punto de partida es `ultimate-estadistico.html`, un prototipo funcional de una sola página. Se guarda sin cambios en `prototipo/` como referencia y se migra por partes a la estructura de abajo.
