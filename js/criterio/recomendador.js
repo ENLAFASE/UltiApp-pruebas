@@ -34,11 +34,14 @@ const ROLES_ESTRUCTURA = ROLES.filter(function (r) { return r.k !== 'def'; });
 
 // s = estado del partido, req = { M, F } que pide la proporción (o null),
 // elegidos = ids que el coach ya marcó a mano.
-export function recomendarLinea(s, req, elegidos) {
-  const c = cfg(), modo = modoActual(), ataque = s.offense === 'us', EN_CANCHA = 7;
-  const lista = convocados();
+// ctx (opcional) = { roster, cfg } para calcular situaciones hipotéticas sin
+// partido en curso (lo usan las Cartas de juego). Sin ctx se usa la app.
+export function recomendarLinea(s, req, elegidos, ctx) {
+  const c = (ctx && ctx.cfg) || cfg(), ataque = s.offense === 'us', EN_CANCHA = 7;
+  const modo = MODOS[c.lineMode] ? c.lineMode : 'entrenamiento';
+  const lista = ctx ? ctx.roster.filter(function (p) { return !p.noConv; }) : convocados();
   const enLista = function (id) { return lista.some(function (p) { return p.id === id; }); };
-  const sel = elegidos.filter(enLista), motivos = {}, tengo = { M: 0, F: 0 };
+  const sel = elegidos.filter(enLista), motivos = {}, roles = {}, tengo = { M: 0, F: 0 };
   const P = function (id) { return lista.find(function (x) { return x.id === id; }); };
   sel.forEach(function (id) { motivos[id] = 'Elegido por ti'; tengo[genero(P(id))]++; });
   let libres = lista.filter(function (p) { return sel.indexOf(p.id) < 0; });
@@ -104,7 +107,7 @@ export function recomendarLinea(s, req, elegidos) {
         return rotar ? (rot || nota) : (nota || (desgaste(b, 0.5) - desgaste(a, 0.5)));
       });
       const p = buenos[0];
-      asignados.add(p.id);
+      asignados.add(p.id); roles[p.id] = rol.k; // qué rol de la columna vertical cubre
       const esClave = preferir && preferir.has(p.id);
       tomar(p, rol.principal + ' (' + rol.nombre + ' ' + ev(p)[rol.k] + ')' + (esClave ? (sufijo || '') : '') + txtDesgaste(p));
     });
@@ -162,7 +165,7 @@ export function recomendarLinea(s, req, elegidos) {
   }
 
   const sinEvaluar = lista.filter(function (p) { return !evaluado(p); }).length;
-  return { ids: sel, resumen: resumen, motivos: motivos, sinEvaluar: sinEvaluar, modo: modo, zona: zona && zona.id };
+  return { ids: sel, resumen: resumen, motivos: motivos, roles: roles, sinEvaluar: sinEvaluar, modo: modo, zona: zona && zona.id };
 }
 
 // Los mejores para atacar (los que se reservan para el próximo punto de ataque).

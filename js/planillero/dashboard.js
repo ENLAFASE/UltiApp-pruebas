@@ -19,6 +19,7 @@ function selectorModo() {
   });
   h += '</div><p class="muted" style="margin:0">' + MODOS_APP[actual].ayuda + '</p>';
   if (bloqueado) h += '<p class="muted" style="margin:0"><b>Este partido se creó en modo ' + MODOS_APP[actual].nombre + '.</b> Ciérralo para cambiar de modo.</p>';
+  h += '<a class="btn full ct-link" href="cartas.html">Cartas de juego: líneas impresas para cada marcador →</a>';
   return h + '</div>';
 }
 

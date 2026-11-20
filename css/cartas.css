@@ -1,0 +1,97 @@
+/* Cartas de juego: página aparte (cartas.html). Usa los colores de base.css. */
+#cartas{max-width:720px;margin:0 auto;padding-bottom:24px}
+.ct-h{font-size:20px;text-transform:uppercase;letter-spacing:.04em}
+
+/* Pasos */
+.ct-pasos{position:sticky;top:0;z-index:5;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));background:var(--bg);border-bottom:1px solid var(--line)}
+.ct-pasos button{min-height:46px;border:none;background:transparent;font-weight:600;font-size:13px;color:var(--muted);border-bottom:3px solid transparent}
+.ct-pasos button[aria-current="step"]{color:var(--us);border-bottom-color:var(--acc);font-weight:800}
+
+/* Plantel y evaluación */
+.ct-tabla{display:flex;flex-direction:column;gap:4px}
+.ct-fila{display:grid;grid-template-columns:24px minmax(0,1fr) 32px repeat(4,46px);gap:4px;align-items:center;padding:4px 0;border-bottom:1px solid var(--line)}
+.ct-fila.fuera{opacity:.5}
+.ct-tit{font-size:12px;color:var(--muted);font-weight:700;border-bottom:2px solid var(--line)}
+.ct-fila input[type=checkbox]{width:20px;height:20px;accent-color:var(--us)}
+.ct-fila select{min-height:36px;border-radius:6px;border:1px solid var(--line);background:var(--bg);padding:0 2px;width:100%}
+.ct-nom{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ct-g{min-height:32px;border-radius:6px;border:1px solid var(--line);background:var(--surface);font-weight:800}
+
+/* Tablero: columnas = nuestros goles, filas = goles rival */
+.ct-tablero{display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));gap:2px;font-size:10px;text-align:center}
+.ct-esq{font-size:8px;line-height:1.1;color:var(--muted)}
+.ct-eje{color:var(--muted);align-self:center;font-weight:600}
+.ct-c{display:block;aspect-ratio:1;border:none;border-radius:3px;padding:0;cursor:pointer;opacity:.55}
+.ct-c.nada{background:repeating-linear-gradient(45deg,var(--surface),var(--surface) 3px,var(--line) 3px,var(--line) 5px);cursor:default;opacity:1}
+.ct-c.ruta{opacity:1;box-shadow:inset 0 0 0 2px rgba(255,255,255,.7)}
+.ct-c.ficha{opacity:1;outline:3px solid var(--acc);outline-offset:0;position:relative}
+.ct-c.ficha::after{content:"";position:absolute;inset:25%;border-radius:50%;background:#fff;box-shadow:0 0 0 2px #1B1B1D}
+.ct-c.vista{opacity:1;outline:2px dashed var(--ink)}
+.ct-leg-ficha{background:#fff;border-radius:50%;box-shadow:0 0 0 2px var(--acc)}
+.ct-mov{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.ct-mov .btn{min-height:60px;font-size:22px}
+.ct-ruta{display:flex;flex-wrap:wrap;gap:3px}
+.ct-ruta i{font-style:normal;font-weight:800;width:22px;height:22px;border-radius:4px;display:inline-flex;align-items:center;justify-content:center;color:#fff}
+.ct-ruta i.us{background:var(--us)}
+.ct-ruta i.them{background:var(--them)}
+
+/* Carta de la situación actual */
+.ct-carta{display:flex;flex-direction:column;gap:8px;border-top:4px solid var(--us)}
+.ct-sit{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;align-items:center}
+.ct-marc{font-size:44px;line-height:.85;grid-row:span 2}
+.ct-chips{display:flex;flex-wrap:wrap;gap:4px}
+.ct-od{font-size:12px;font-weight:800;padding:2px 7px;border-radius:4px;color:#fff}
+.ct-od.at{background:var(--us)}
+.ct-od.df{background:var(--them)}
+.ct-ratio{font-size:12px;font-weight:800;padding:2px 7px;border-radius:4px;color:#fff}
+.ct-ratio.hom{background:var(--hom)}
+.ct-ratio.muj{background:var(--muj)}
+.ct-linea{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:4px}
+.ct-linea li{border-left:4px solid var(--hom);padding-left:6px}
+.ct-linea li.M{border-left-color:var(--muj)}
+.ct-rol{margin-left:6px;font-size:11px;font-weight:800;color:var(--us)}
+.ct-tag{margin-left:6px;font-size:10px;font-weight:700;padding:1px 5px;border-radius:4px}
+.ct-tag.entra{background:var(--us-soft);color:var(--us)}
+.ct-tag.repite{background:var(--warn-soft);color:var(--warn)}
+.ct-mot{display:block;font-size:11px}
+
+/* Carta de un marcador (pantalla e impresión) */
+.ct-cas{display:flex;flex-direction:column;gap:4px}
+.ct-cas-h{display:flex;align-items:center;gap:10px;font-size:12px;font-weight:600}
+.ct-cas-h .ct-marc{font-size:34px}
+.ct-tab{border-collapse:collapse;width:100%;font-size:12px}
+.ct-tab th,.ct-tab td{padding:2px 4px;text-align:left;border-bottom:1px solid var(--line);white-space:normal}
+.ct-tab th{width:34px;font-weight:800;background:transparent;color:var(--ink);font-size:12px}
+.ct-tab th.us{color:var(--us)}
+.ct-tab td.od{width:16px;font-weight:800;text-align:center}
+.ct-tab td.od.at{color:var(--us)}
+.ct-tab td.od.df{color:var(--them)}
+.ct-tab td.ln span{display:inline-block;margin-right:3px;padding-left:3px;border-left:3px solid var(--hom)}
+.ct-tab td.ln span.M{border-left-color:var(--muj)}
+.ct-tab td.ln span.r{font-weight:800}
+.ct-tab sup{font-size:8px;color:var(--us)}
+
+/* Vista previa del cuadernillo en pantalla */
+#impresion{padding:0 18px}
+.ct-portada{border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px}
+.ct-portada h1{margin:0 0 6px;font-size:28px}
+.ct-portada p{margin:4px 0;font-size:13px}
+.ct-cuaderno{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:8px}
+.ct-cuaderno .ct-cas{border:1px solid var(--line);border-radius:8px;padding:6px}
+
+/* ---------- Impresión: solo el cuadernillo ---------- */
+@media print{
+  @page{size:A4;margin:10mm}
+  :root{--bg:#fff;--ink:#000;--line:#bbb;--muted:#444}
+  body{background:#fff}
+  .badge-prueba,.no-imprimir,.ct-pasos,header.sb,#cartas > section,.toast{display:none !important}
+  #cartas{max-width:none;padding:0}
+  #impresion{padding:0}
+  .ct-portada{break-after:page}
+  .ct-cuaderno{display:block;columns:2;column-gap:6mm}
+  .ct-cuaderno .ct-cas{break-inside:avoid;margin:0 0 4mm;border:1px solid #888}
+  .ct-tab{font-size:8.5pt}
+  .ct-tab th,.ct-tab td{padding:1px 3px}
+  .ct-cas-h .ct-marc{font-size:22pt}
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}

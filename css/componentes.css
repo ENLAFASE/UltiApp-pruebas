@@ -476,3 +476,6 @@ code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;background
 .ult{flex:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* Llamados: posesión sugerida */
 .sug-pos{font-size:12px}
+
+/* Enlace a las Cartas de juego (página aparte) */
+.ct-link{display:flex;align-items:center;justify-content:center;text-decoration:none;color:var(--ink)}

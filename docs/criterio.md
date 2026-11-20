@@ -72,3 +72,17 @@ Con la regla ABBA, la proporción cambia cada dos puntos, **sin importar** si se
 - Considerar el **tiempo** (cap blando y duro) además del marcador: con poco tiempo, una ventaja de +2 vale más.
 - Diferenciar el "núcleo ofensivo" de la "línea de defensa" a partir de los resultados reales de cada línea (holds y breaks).
 - Registrar el nivel del rival por partido (hoy es un ajuste general).
+
+## 6. Cartas de juego (tablero de marcadores)
+
+El partido se puede ver como un tablero: la ficha de nuestro equipo parte en 0-0; cada gol nuestro la mueve a la derecha y cada gol rival, hacia abajo, hasta que sale del tablero (ganamos por la derecha, perdemos por abajo).
+
+- Con meta 15 y sin permitir más de 6 goles seguidos de un mismo equipo hay **142.866.705 rutas** (36,9 millones solo hasta 14-14). Imposible de imprimir.
+- Pero para el motor, dos rutas que llegan al mismo marcador **de la misma forma** son equivalentes. La línea depende de:
+  - el **marcador** → zona (asegurar ataque, línea fuerte, rotación, descanso);
+  - el **n.º de punto** → proporción ABBA;
+  - **quién anotó el último gol** → si el próximo punto es de ataque o de defensa (y el medio tiempo);
+  - la **racha** (goles seguidos del mismo equipo) → cuántos puntos seguidos lleva la línea del mismo tipo.
+- Eso reduce todo a **1.769 situaciones** en **205 marcadores** alcanzables (máximo 12 por marcador). Una carta por marcador, con una fila por cada forma de llegar.
+- Lo único que sí depende de la ruta completa es el desgaste acumulado (puntos jugados por cada uno): se estima siguiendo la **ruta más probable** hasta cada situación.
+- Pendiente: probar en cancha si conviene sumar el tiempo (cap) como variable de las cartas.

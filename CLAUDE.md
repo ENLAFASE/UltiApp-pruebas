@@ -10,6 +10,13 @@
 > - **Asistente** (nivel 2): líneas con el motor de sugerencia, ATAQUE/DEFENSA, ABBA, puntos y minutos jugados; el punto parte con un toque en PULL (pull `auto`) y se registra gol (con asistencia), gol rival, turnover (`throwaway`) e intercepción (`block`). Sin pases, sin pull cronometrado, sin llamados. Solo nuestro plantel. Pantallas en `js/planillero/asistente.js`.
 > - **Coach** (nivel 3): todo lo de antes. Además: la posesión al reanudar se **sugiere** según el llamado (`posesionSugerida` en `eventos.js`: Down, Dentro/Fuera y Stall aceptados → el disco pasa a quien llamó; contestados → vuelve a quien lo tenía; observador → sin sugerencia) y el tipo **Lesión** registra el cambio (`call` con `out`/`in`): sale de la línea, entra desde la banca; los minutos se cuentan por tramo.
 > - Elegir jugador en Planillero/Asistente usa `ui.pick` con `titulo` (`js/planillero/elegir.js`); el `ui.pick` sin `titulo` sigue siendo el de Coach.
+>
+> **Cartas de juego** (`cartas.html`, página aparte; enlace desde el Dashboard): líneas sugeridas para imprimir y llevar al partido.
+> - El partido es un tablero de marcadores: la ficha parte en 0-0; gol nuestro → derecha, gol rival → abajo. Sin rachas de más de 6 goles seguidos (`MAX_RACHA`).
+> - Con meta 15 hay 142.866.705 rutas, pero el motor solo necesita la **situación**: marcador + quién anotó el último gol + racha → 1.769 situaciones en 205 marcadores (≤ 12 por carta). El desgaste acumulado se estima con la ruta más probable a cada situación (`js/cartas/motor.js`).
+> - El motor de cartas llama a `recomendarLinea(s, req, [], { roster, cfg })`: el 4.º parámetro (`ctx`) permite calcular situaciones hipotéticas sin partido; también devuelve `roles` (quién es el manejo, avance y gol principal).
+> - Datos propios en `localStorage` con clave `ufs-cartas-v1`; puede **leer** (nunca escribir) el plantel de `ufs-pruebas-v1` y `ufs-v1`.
+> - Pasos: Plantel (con evaluación editable) → Partido (inicio en ataque/defensa, tipo, ABBA, criterio) → Tablero (navegar gol a gol; tocar una casilla muestra su carta) → Imprimir (cuadernillo A4, 2 columnas; filtro de rachas para acortarlo).
 
 App para registrar y analizar partidos de Ultimate Frisbee. Nace en un club chileno con 9 años de trayectoria (Pro Ultimate). Meta a largo plazo: ofrecerla a la Federación Chilena de Disco Volador.
 

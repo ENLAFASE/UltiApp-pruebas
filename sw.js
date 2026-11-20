@@ -3,7 +3,7 @@
 //
 // IMPORTANTE: cada vez que cambies cualquier archivo de la app, sube el número
 // de VERSION. Así los teléfonos saben que hay una versión nueva y la descargan.
-const VERSION = 'p2';
+const VERSION = 'p3';
 // VERSIÓN DE PRUEBAS: nombres propios para no borrar ni pisar la copia de la app real
 // (las dos viven en el mismo dominio).
 const PREFIJO = 'ultiapp-pruebas-';
@@ -15,6 +15,10 @@ const ARCHIVOS = [
   './',
   'index.html',
   'privacidad.html',
+  'cartas.html',
+  'css/cartas.css',
+  'js/cartas/motor.js',
+  'js/cartas/cartas.js',
   'manifest.webmanifest',
   'css/base.css',
   'css/componentes.css',
