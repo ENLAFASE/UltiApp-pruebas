@@ -90,5 +90,15 @@ El partido se puede ver como un tablero: la ficha de nuestro equipo parte en 0-0
 ## 7. Posiciones y máximo de puntos seguidos (2026-11-21)
 
 - **Posiciones:** toda línea, en ataque y en defensa, lleva **3 manejos, 2 cortes de avance y 2 cortes de gol**. Primero se eligen los 3 principales (la columna vertical) y después se llenan los otros 4 puestos con el criterio de la zona más la nota en esa posición. Los manejos deben tener perfil de manejador (nota 3 o más).
-- **Máximo de puntos seguidos:** con el partido apretado (asegurar el ataque y línea fuerte), quien llegó al máximo descansa un punto (por defecto 4; se cambia en Ajustes y en las Cartas). Si por cansancio no queda nadie de nivel para la columna vertical o el 3.er manejo, juega igual uno de los cansados y el motivo lo indica. Con planteles normales (14 o más) eso no ocurre; con 9 o 10 jugadores sí, a veces.
+- **Máximo de puntos seguidos:** en todas las zonas del marcador (desde el 2026-11-21, cambio B), quien llegó al máximo descansa un punto (por defecto 4; se cambia en Ajustes y en las Cartas). Si por cansancio no queda nadie de nivel para la columna vertical o el 3.er manejo, juega igual uno de los cansados y el motivo lo indica. Con planteles normales (14 o más) eso no ocurre; con 9 o 10 jugadores sí, a veces.
 - **Asegurar el ataque en defensa:** la columna vertical se elige entre los buenos (nota 4 o más), rotando entre ellos; no siempre entran los mejores. El núcleo ofensivo descansa cuando hay alternativa buena.
+
+## 8. Reparto según la evaluación (cambios A + B + C, 2026-11-21)
+
+Una simulación de miles de partidos (con fin por tiempo en 12, 13, 14 o 15 y mitad ganados, mitad perdidos) mostró que el motor respetaba el orden por nivel, pero los de nota baja casi no jugaban, los especialistas jugaban mucho más que los parejos de su misma nota y había rachas de hasta 10 puntos seguidos. Se aplicó:
+
+- **A · Equidad** (`PARAM.EQUIDAD = 0.15`): cada jugador tiene una *cuota* de puntos proporcional a su nivel general, dentro de su género si es mixto (3,5 cupos por género en promedio). Quien va atrasado respecto de su cuota recibe un pequeño empujón al llenar cada puesto (0,15 por punto de atraso).
+- **B · Máximo en todas las zonas:** el máximo de puntos seguidos vale también en rotación y descanso de piezas clave.
+- **C · Menos peso a la posición** (`PARAM.PESO_POSICION` de 0,5 a 0,25): la nota general pesa más que la nota en la posición.
+
+Resultado con el plantel Mixto de Húsares (16): la distancia promedio a la cuota bajó de 11,8 a 8,4 puntos de %, la racha máxima de 10 a 4, y los partidos ganados (modelo donde una línea mejor anota más) de 54 % a 50 %. Quedan pendientes de decidir: tope duro (descanso obligado al doble del máximo, para planteles de 8), subir la equidad a 0,30, un mínimo de participación y el marcador esperado por tiempo para el cierre.

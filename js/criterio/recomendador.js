@@ -109,7 +109,7 @@ export function recomendarLinea(s, req, elegidos, ctx) {
       if (!cands.length) break;
       const valor = function (p) {
         const pos = rol || ['man', 'av', 'gol'].reduce(function (m, r) { return ev(p)[r] > ev(p)[m] ? r : m; });
-        return puntaje(p) + PARAM.PESO_POSICION * (ev(p)[pos] - 3);
+        return puntaje(p) + PARAM.PESO_POSICION * (ev(p)[pos] - 3) + PARAM.EQUIDAD * deficit(p);
       };
       cands.sort(function (a, b) { return (valor(b) - valor(a)) || ((+a.num || 0) - (+b.num || 0)); });
       const p = cands[0];
@@ -163,6 +163,18 @@ export function recomendarLinea(s, req, elegidos, ctx) {
       tomar(p, rol.principal + ' (' + rol.nombre + ' ' + ev(p)[rol.k] + ')' + (esClave ? (sufijo || '') : '') + txtDesgaste(p) + (rescate ? NOTA_RESCATE : ''));
     });
   }
+  // Cuota de puntos según la evaluación: cada uno debería jugar una parte de los
+  // puntos proporcional a su nivel (dentro de su género si es mixto). Quien va
+  // atrasado respecto de su cuota recibe un pequeño empujón (PARAM.EQUIDAD).
+  const jugados = s.puntosJugados != null ? s.puntosJugados : (s.us || 0) + (s.them || 0);
+  const cupoG = c.mixed ? { M: 3.5, F: 3.5 } : { M: 7, F: 7 };
+  const sumaNivel = { M: 0, F: 0 };
+  lista.forEach(function (p) { sumaNivel[c.mixed ? genero(p) : 'M'] += nivelGeneral(p); });
+  function deficit(p) {
+    const g = c.mixed ? genero(p) : 'M';
+    if (!sumaNivel[g]) return 0;
+    return cupoG[g] * nivelGeneral(p) / sumaNivel[g] * jugados - pts(p); // > 0: va atrasado
+  }
   function textoNivel(p, valor, tipo) { return 'Nivel ' + n1(valor) + ' ' + tipo + txtDesgaste(p); }
 
   // Cada criterio define: estructura (columna vertical), puntaje y motivo.
@@ -215,10 +227,10 @@ export function recomendarLinea(s, req, elegidos, ctx) {
   }
 
   // Máximo de puntos seguidos por jugador cuando el partido va apretado (zonas
-  // "asegurar el ataque" y "línea fuerte"): quien llegó al máximo descansa este
-  // punto, salvo que no haya reemplazo. Así se mantiene el nivel de juego.
+  // en todas las zonas del marcador): quien llegó al máximo descansa este punto,
+  // salvo que no haya reemplazo de su nivel.
   const maxSeg = Math.max(0, parseInt(c.maxSeguidos, 10) || 0);
-  if (zona && (zona.id === 'ataque' || zona.id === 'fuerte') && maxSeg > 0) {
+  if (zona && maxSeg > 0) {
     cansados = libres.filter(function (p) { return racha(p) >= maxSeg; });
     libres = libres.filter(function (p) { return racha(p) < maxSeg; });
   }

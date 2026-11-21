@@ -167,7 +167,7 @@ function vistaPartido() {
   h += '<label class="switch">Partido crucial (hay que ganar sí o sí)<input type="checkbox" data-cfk="crucial"' + (c.crucial ? ' checked' : '') + '></label>';
   h += '<div class="grid2">' + num('margenVentaja', 'Margen de ventaja (+)') + num('margenDesventaja', 'Margen de desventaja (−)') + '</div>';
   h += '<div class="field"><label class="lbl" for="cf-maxSeguidos">Máximo de puntos seguidos por jugador</label><input id="cf-maxSeguidos" type="number" min="0" inputmode="numeric" data-cf="maxSeguidos" value="' + c.maxSeguidos + '">' +
-    '<span class="muted">Con el partido apretado (asegurar el ataque o línea fuerte), quien llega a este número descansa un punto. 0 = sin máximo.</span></div>';
+    '<span class="muted">Quien llega a este número de puntos seguidos descansa un punto (salvo que no haya reemplazo de su nivel). 0 = sin máximo.</span></div>';
   h += '<p class="muted" style="margin:0">Toda línea lleva <b>3 manejos, 2 cortes de avance y 2 cortes de gol</b>.</p>';
   h += '<p class="muted" style="margin:0">Se rota desde <b>+' + m.ventaja + '</b>' + (m.desventaja === Infinity ? ' y nunca descansan las piezas clave.' : ' y descansan las piezas clave desde <b>−' + m.desventaja + '</b>.') + '</p>';
   h += '<button class="btn big fill disp full" data-a="paso" data-v="tablero">Ver el tablero</button>';
