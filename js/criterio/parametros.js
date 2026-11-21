@@ -23,6 +23,7 @@ export const PARAM = {
   POSICIONES: { man: 3, av: 2, gol: 2 },
   NOTA_PERFIL_MANEJO: 3,  // desde esta nota de manejo alguien tiene "perfil de manejador"
   PESO_POSICION: 0.25,    // cuánto pesa la nota en la posición al llenar cada puesto (antes 0.5: favorecía demasiado a los especialistas)
+  COMPENSACION: 1.0,      // si entra alguien por el mínimo, cuánto se premia el nivel en defensa del resto de su género
   EQUIDAD: 0.30,          // empujón por cada punto que alguien va atrasado respecto de su cuota (cuota = parte proporcional a su nivel)
 
   // Piezas clave: el mejor tramo del plantel convocado (por género si es mixto).

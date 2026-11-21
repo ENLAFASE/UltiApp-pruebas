@@ -109,7 +109,8 @@ export function recomendarLinea(s, req, elegidos, ctx) {
       if (!cands.length) break;
       const valor = function (p) {
         const pos = rol || ['man', 'av', 'gol'].reduce(function (m, r) { return ev(p)[r] > ev(p)[m] ? r : m; });
-        return puntaje(p) + PARAM.PESO_POSICION * (ev(p)[pos] - 3) + PARAM.EQUIDAD * deficit(p);
+        return puntaje(p) + PARAM.PESO_POSICION * (ev(p)[pos] - 3) + PARAM.EQUIDAD * deficit(p) +
+          (compensar && (compensar === 'todos' || genero(p) === compensar) ? PARAM.COMPENSACION * (nivelDefensa(p) - 3) : 0);
       };
       cands.sort(function (a, b) { return (valor(b) - valor(a)) || ((+a.num || 0) - (+b.num || 0)); });
       const p = cands[0];
@@ -175,29 +176,50 @@ export function recomendarLinea(s, req, elegidos, ctx) {
     if (!sumaNivel[g]) return 0;
     return cupoG[g] * nivelGeneral(p) / sumaNivel[g] * jugados - pts(p); // > 0: va atrasado
   }
-  // Mínimo de participación (cfg.minPuntos, 0 = sin mínimo): desde la segunda mitad,
-  // quien no ha llegado al mínimo entra en un puesto que no sea de la columna vertical.
-  // Cuántos entran en cada punto depende de cuánto falta y de cuántos puntos quedan como
-  // mínimo (si el que va arriba anotara todos), así no se dejan todos para el final.
+  // Mínimo de participación (cfg.minPuntos, 0 = sin mínimo). Quien no ha llegado al
+  // mínimo entra de dos formas:
+  //  1) OPORTUNIDAD (desde el inicio): en un punto de DEFENSA en que su género tiene
+  //     mayoría (por ejemplo, un hombre en un punto de 4 hombres; en open, cualquier
+  //     defensa), fuera de la zona "línea fuerte". Entra uno por punto, el de menor nivel,
+  //     y el resto de su género se elige pensando en compensarlo (mejores defensores).
+  //  2) URGENCIA (segunda mitad): si lo que falta ya no alcanza con las oportunidades que
+  //     quedan (deuda × 2 ≥ puntos que quedan como mínimo), entra aunque no sea el punto ideal.
   const minimo = Math.max(0, parseInt(c.minPuntos, 10) || 0);
+  let compensar = null; // género cuyo resto de la línea se refuerza en defensa
   function minimoParticipacion() {
     if (!minimo) return;
     const meta = metaEfectiva(c), lider = Math.max(s.us || 0, s.them || 0);
-    if (lider < Math.ceil(meta / 2)) return;
     const quedan = Math.max(1, meta - lider);
     const deudores = libres.concat(cansados).filter(function (p) { return pts(p) < minimo; });
     if (!deudores.length) return;
     const deuda = deudores.reduce(function (t, p) { return t + minimo - pts(p); }, 0);
-    let cupo = Math.min(Math.ceil(deuda / quedan), EN_CANCHA - sel.length - 1);
-    deudores.sort(function (a, b) { return (pts(a) - pts(b)) || (descanso(b) - descanso(a)) || (nivelGeneral(b) - nivelGeneral(a)); });
-    deudores.forEach(function (p) {
-      if (cupo <= 0 || !cabe(p)) return;
-      const rol = ['av', 'gol', 'man'].filter(function (r) { return faltan(r) > 0 && (r !== 'man' || ev(p).man >= PARAM.NOTA_PERFIL_MANEJO); })
+    function rolPara(p) {
+      return ['av', 'gol', 'man'].filter(function (r) { return faltan(r) > 0 && (r !== 'man' || ev(p).man >= PARAM.NOTA_PERFIL_MANEJO); })
         .sort(function (a, b) { return ev(p)[b] - ev(p)[a]; })[0];
-      if (!rol) return;
-      roles[p.id] = rol; cupo--;
-      tomar(p, NOMBRE_POS[rol] + ' (nota ' + ev(p)[rol] + ') · Mínimo de participación: lleva ' + pts(p) + ' de ' + minimo + (minimo === 1 ? ' punto' : ' puntos'));
-    });
+    }
+    function entra(p, texto) {
+      const rol = rolPara(p); if (!rol) return false;
+      roles[p.id] = rol;
+      tomar(p, NOMBRE_POS[rol] + ' (nota ' + ev(p)[rol] + ') · Mínimo de participación: lleva ' + pts(p) + ' de ' + minimo + (minimo === 1 ? ' punto' : ' puntos') + texto);
+      return true;
+    }
+    // 2) Urgencia
+    if (lider >= Math.ceil(meta / 2) && deuda * 2 >= quedan) {
+      let cupo = Math.min(Math.ceil(deuda / quedan), EN_CANCHA - sel.length - 1);
+      deudores.slice().sort(function (a, b) { return (pts(a) - pts(b)) || (descanso(b) - descanso(a)) || (nivelGeneral(b) - nivelGeneral(a)); })
+        .forEach(function (p) { if (cupo > 0 && cabe(p) && entra(p, ' · quedan pocos puntos')) cupo--; });
+      return;
+    }
+    // 1) Oportunidad: defensa, mayoría de su género, partido no apretado.
+    if (ataque || (zona && zona.id === 'fuerte')) return;
+    const opciones = deudores.filter(function (p) {
+      if (!cabe(p)) return false;
+      return !req || !c.mixed || req[genero(p)] > EN_CANCHA / 2;
+    }).sort(function (a, b) { return (pts(a) - pts(b)) || (nivelGeneral(a) - nivelGeneral(b)); });
+    const p = opciones[0];
+    if (p && entra(p, ' · entra en defensa' + (req && c.mixed ? ' con ' + req[genero(p)] + (genero(p) === 'F' ? ' mujeres' : ' hombres') : '') + '; el resto de su género se elige premiando la defensa')) {
+      compensar = c.mixed ? genero(p) : 'todos';
+    }
   }
   function textoNivel(p, valor, tipo) { return 'Nivel ' + n1(valor) + ' ' + tipo + txtDesgaste(p); }
 

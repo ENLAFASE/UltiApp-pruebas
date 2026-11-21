@@ -120,3 +120,12 @@ Simulación con el plantel Mixto de Húsares (16; 2.000 partidos por versión, f
 | + marcador esperado | 6,1 | 4 | 0 % | 2,2 | 49,1 % |
 
 \* modelo donde una línea con mejor nivel anota un poco más seguido (margen ±1 punto). Con el marcador esperado, los puntos de Papalote en los últimos 3 del partido bajan de 24 % a 14 %. Pendiente: preferir cumplir el mínimo en puntos de rotación o de defensa antes que con el partido apretado.
+
+## 10. Cómo se cumple el mínimo: oportunidades en defensa (2026-11-21)
+
+Antes el mínimo se cumplía desde la segunda mitad en cualquier punto, y los de menor nivel entraban tarde (Papalote, mediana del primer punto: 13) y muchas veces con el partido apretado (41 %). Ahora:
+
+1. **Oportunidad, desde el inicio:** en un punto de **defensa** en que el género del jugador tiene **mayoría** (4 hombres o 4 mujeres; en open, cualquier defensa) y fuera de "línea fuerte", entra uno de los que están bajo el mínimo: el de menor nivel. El resto de su género se elige sumando `PARAM.COMPENSACION × (nivel en defensa − 3)` (por defecto 1,0), para compensar su entrada.
+2. **Urgencia, en la segunda mitad:** si la deuda × 2 ≥ los puntos que quedan como mínimo (con `metaEfectiva`), entran aunque no sea el punto ideal.
+
+Simulación (plantel Mixto, 2.000 partidos): Papalote pasa de 34 % a 79 % de sus puntos en defensa con 4 hombres, de 42 % a 16 % con el partido apretado y su primer punto (mediana) del 13 al 4. Con compensación, la defensa promedio de los hombres que lo acompañan sube de 3,11 a 3,50. Todos siguen llegando al mínimo; los partidos ganados quedan dentro del margen de error (52,0 % → 50,8 %, ±1).
