@@ -167,7 +167,7 @@ function alTocar(ev) {
     case 'suggest': suggestLine(s); break;
     case 'metaTiempo':
       // Marcador esperado por tiempo: el motor cambia el cierre y el mínimo de participación.
-      store.cfg.metaTiempoOn = !store.cfg.metaTiempoOn;
+      store.cfg.metaTiempoOn = !store.cfg.metaTiempoOn; save();
       ui.sug = null;
       toast(store.cfg.metaTiempoOn ? 'El motor espera terminar por tiempo en ' + store.cfg.metaTiempo + ' (se cambia en Ajustes)' : 'El motor vuelve a esperar ' + store.cfg.pointsToWin + ' puntos');
       break;
