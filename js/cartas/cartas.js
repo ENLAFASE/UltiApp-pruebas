@@ -183,6 +183,55 @@ function situacionDeRuta(k) {
   return k.estados.get(a + '-' + b + '-' + (d || 'ini') + '-' + r) || null;
 }
 
+// Puntos jugados por cada uno SIGUIENDO LA RUTA marcada en el tablero:
+// en cada punto ya jugado se cuenta la línea que sugería la carta de ese momento.
+// seguidos = puntos seguidos que lleva jugando hasta el último punto;
+// fuera = puntos seguidos que lleva sin jugar.
+function puntosDeRuta(k) {
+  const res = {}, jugados = [];
+  convocados().forEach(function (p) { res[p.id] = { pts: 0, seguidos: 0, fuera: 0 }; });
+  let a = 0, b = 0, d = null, r = 0;
+  for (let i = 0; i < st.ruta.length; i++) {
+    const e = k.estados.get(a + '-' + b + '-' + (d || 'ini') + '-' + r);
+    if (!e) break;
+    jugados.push(e.linea);
+    const m = st.ruta[i];
+    r = d === m ? r + 1 : 1; d = m;
+    if (m === 'us') a++; else b++;
+  }
+  Object.keys(res).forEach(function (id) {
+    const x = res[id];
+    jugados.forEach(function (linea) {
+      if (linea.indexOf(id) >= 0) { x.pts++; x.seguidos++; x.fuera = 0; }
+      else { x.seguidos = 0; x.fuera++; }
+    });
+  });
+  return { porJugador: res, puntos: jugados.length };
+}
+
+// Tabla "Puntos jugados": cómo va la carga de cada uno en el momento actual de la ruta.
+function tablaPuntos(k, actual) {
+  const t = puntosDeRuta(k), proximos = actual ? actual.linea : [];
+  const max = Math.max(1, t.puntos);
+  const filas = convocados().slice().sort(function (x, y) {
+    return (t.porJugador[y.id].pts - t.porJugador[x.id].pts) || ((+x.num || 0) - (+y.num || 0));
+  });
+  let h = '<div class="card ct-puntos"><div class="ct-puntos-h"><b class="disp ct-h">Puntos jugados</b>' +
+    '<span class="muted">' + t.puntos + (t.puntos === 1 ? ' punto jugado' : ' puntos jugados') + ' en esta ruta</span></div>';
+  if (!t.puntos) h += '<p class="muted" style="margin:0">Marca goles con los botones de arriba para ver cómo se reparten los puntos.</p>';
+  h += '<div class="ct-pj ct-pj-tit"><span>Jugador</span><span>Puntos</span><span title="Puntos seguidos jugando">Seg.</span><span title="Juega el próximo punto">Próx.</span></div>';
+  filas.forEach(function (p) {
+    const x = t.porJugador[p.id], juega = proximos.indexOf(p.id) >= 0;
+    h += '<div class="ct-pj' + (juega ? ' juega' : '') + '"><span class="ct-nom ' + letraG(p) + '"><b>' + esc(p.name || '#' + p.num) + '</b> <small>#' + esc(p.num) + '</small></span>' +
+      '<span class="ct-pj-bar"><span class="barra"><span class="relleno" style="width:' + Math.round(x.pts / max * 100) + '%"></span></span><b>' + x.pts + '</b></span>' +
+      '<span class="' + (x.seguidos >= 3 ? 'txt-warn' : '') + '">' + (x.seguidos || (x.fuera && t.puntos ? '−' + x.fuera : '0')) + '</span>' +
+      '<span>' + (juega ? '<b class="ct-si">✓</b>' : '') + '</span></div>';
+  });
+  h += '<p class="muted" style="margin:0">Seg. = puntos seguidos jugando (en ámbar desde 3); −2 = lleva 2 puntos sin jugar. ✓ = está en la línea del próximo punto. ' +
+    'Las cartas calculan el desgaste con la ruta más probable a cada marcador, así que en rutas poco comunes la rotación sugerida puede no reflejar exactamente estos números.</p>';
+  return h + '</div>';
+}
+
 function lineaHTML(e, detalle) {
   const roles = { man: 'Manejo', av: 'Avance', gol: 'Gol' };
   return '<ol class="ct-linea">' + e.linea.map(function (id) {
@@ -239,6 +288,9 @@ function vistaTablero() {
   } else {
     h += '<div class="aviso">' + finDeRuta(k) + '</div>';
   }
+
+  // Carga de cada jugador en este momento de la ruta
+  h += tablaPuntos(k, actual);
 
   // Carta completa de una casilla tocada
   if (celdaVista && k.casillas[celdaVista]) h += cartaCasilla(k.casillas[celdaVista], true);

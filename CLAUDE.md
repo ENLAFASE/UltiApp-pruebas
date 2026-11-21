@@ -17,6 +17,7 @@
 > - El motor de cartas llama a `recomendarLinea(s, req, [], { roster, cfg })`: el 4.º parámetro (`ctx`) permite calcular situaciones hipotéticas sin partido; también devuelve `roles` (quién es el manejo, avance y gol principal).
 > - Datos propios en `localStorage` con clave `ufs-cartas-v1`; puede **leer** (nunca escribir) el plantel de `ufs-pruebas-v1` y `ufs-v1`.
 > - Pasos: Plantel (con evaluación editable) → Partido (inicio en ataque/defensa, tipo, ABBA, criterio) → Tablero (navegar gol a gol; tocar una casilla muestra su carta) → Imprimir (cuadernillo A4, 2 columnas; filtro de rachas para acortarlo).
+> - En el Tablero, la tabla **Puntos jugados** (`tablaPuntos`) cuenta la carga real de la ruta marcada: puntos de cada uno, puntos seguidos (o sin jugar) y si juega el próximo punto. Las cartas, en cambio, calculan el desgaste con la ruta más probable.
 
 App para registrar y analizar partidos de Ultimate Frisbee. Nace en un club chileno con 9 años de trayectoria (Pro Ultimate). Meta a largo plazo: ofrecerla a la Federación Chilena de Disco Volador.
 

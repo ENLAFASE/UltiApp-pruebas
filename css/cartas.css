@@ -95,3 +95,17 @@
   .ct-cas-h .ct-marc{font-size:22pt}
   *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
+
+/* Tablero: puntos jugados por cada uno en la ruta marcada */
+.ct-puntos{display:flex;flex-direction:column;gap:6px}
+.ct-puntos-h{display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.ct-pj{display:grid;grid-template-columns:minmax(0,1fr) minmax(90px,1.1fr) 36px 34px;gap:8px;align-items:center;font-size:14px;padding:3px 0;border-bottom:1px solid var(--line)}
+.ct-pj-tit{font-size:12px;font-weight:700;color:var(--muted);border-bottom:2px solid var(--line)}
+.ct-pj > span:nth-child(3),.ct-pj > span:nth-child(4){text-align:center}
+.ct-pj .ct-nom{border-left:4px solid var(--hom);padding-left:6px}
+.ct-pj .ct-nom.M{border-left-color:var(--muj)}
+.ct-pj.juega{background:var(--us-soft)}
+.ct-pj-bar{display:flex;align-items:center;gap:6px}
+.ct-pj-bar .barra{flex:1}
+.ct-pj-bar .relleno{background:var(--us)}
+.ct-si{color:var(--us)}
