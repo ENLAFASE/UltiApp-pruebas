@@ -14,7 +14,7 @@ import { viewLine } from './linea.js';
 import { viewPull } from './pull.js';
 import { viewCall } from './llamados.js';
 import { viewElegir } from './elegir.js';
-import { viewAsistentePull, viewAsistentePunto } from './asistente.js';
+import { viewAsistentePull, viewAsistentePunto, viewAsistenteCambio } from './asistente.js';
 import { viewPlanilla } from './planilla.js';
 import { modoApp } from '../modos.js';
 
@@ -100,7 +100,7 @@ export function viewGame() {
   // Ajustes y finalizar, abiertos desde el marcador.
   if (ui.view === 'ajustes') return viewSettings();
   if (ui.view === 'call' && s.phase === 'play') return viewCall(s);
-  ui.view = null;
+  if (ui.view !== 'cambio' || s.phase !== 'play') ui.view = null;
   let h = header(s);
   const modo = modoApp();
   if (s.timeout) h += viewTimeout(s);
@@ -111,7 +111,7 @@ export function viewGame() {
   else if (modo === 'planillero') h += viewPlanilla(s);
   else if (s.phase === 'line') h += viewLine(s);
   // Asistente: el punto se registra de forma simple.
-  else if (modo === 'asistente') h += s.phase === 'pull' ? viewAsistentePull(s) : viewAsistentePunto(s);
+  else if (modo === 'asistente') h += s.phase === 'pull' ? viewAsistentePull(s) : (ui.view === 'cambio' && ui.call ? viewAsistenteCambio(s) : viewAsistentePunto(s));
   else if (s.phase === 'pull') h += viewPull(s);
   else if (s.phase === 'play') h += viewPlay(s);
   else h += viewEnded(s);

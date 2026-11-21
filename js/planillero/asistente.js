@@ -6,6 +6,8 @@ import { cfg } from '../almacen.js';
 import { P, abrev } from '../modelos/jugador.js';
 import { esc } from '../util/formato.js';
 import { quienSaca } from './pull.js';
+import { ui } from '../ui.js';
+import { cambio } from './llamados.js';
 
 function lineaEnCancha(s) {
   return '<div class="linea-chips">' + s.line.map(function (id) {
@@ -38,6 +40,18 @@ export function viewAsistentePunto(s) {
   h += '<div class="asis-goles"><button class="btn fill disp" data-a="asGol">Gol<br><small>' + esc(c.club) + '</small></button>' +
     '<button class="btn themfill disp" data-a="themGoal">Gol<br><small>' + esc(c.rival) + '</small></button></div>';
   h += '<div class="grid2"><button class="btn big disp" data-a="asTurn">Turnover</button><button class="btn big disp" data-a="asBlk">Intercepción</button></div>';
-  h += '<div class="mini"><button class="btn" data-a="undo">Deshacer</button><button class="btn" data-a="openTO">Timeout</button></div>';
+  h += '<div class="mini"><button class="btn" data-a="undo">Deshacer</button><button class="btn" data-a="asCambio">Cambio por lesión</button><button class="btn" data-a="openTO">Timeout</button></div>';
+  return h + '</div>';
+}
+
+// Cambio por lesión durante el punto: quién sale y quién entra. Quien sale igual
+// cuenta como que jugó el punto; quien entra suma el punto desde ese momento.
+export function viewAsistenteCambio(s) {
+  const k = ui.call, listo = !!(k.out && k.in);
+  let h = '<div class="scr">';
+  h += '<div class="paso-h us"><span class="disp">CAMBIO POR LESIÓN</span><span>Punto ' + s.point + ' · la posesión no cambia</span></div>';
+  h += cambio(s, k);
+  h += '<button class="btn big fill disp full" data-a="saveCall"' + (listo ? '' : ' disabled') + '>Guardar cambio</button>';
+  h += '<button class="btn full" data-a="cancelCambio">Cancelar</button>';
   return h + '</div>';
 }

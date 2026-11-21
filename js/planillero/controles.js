@@ -254,6 +254,8 @@ function alTocar(ev) {
       break;
     }
     case 'callPoss': ui.call.poss = v; ui.call.possManual = true; break;
+    case 'asCambio': ui.call = { team: 'us', kind: 'Lesión', res: 'lesion', poss: s.possession, antes: s.possession, possManual: true, out: null, in: null }; ui.view = 'cambio'; break;
+    case 'cancelCambio': ui.call = null; ui.view = null; break;
     case 'callOut': ui.call.out = ui.call.out === id ? null : id; break;
     case 'callIn': ui.call.in = ui.call.in === id ? null : id; break;
     case 'saveCall': {

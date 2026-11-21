@@ -35,7 +35,7 @@ function chipJugador(id, accion, marcado) {
 }
 
 // Cambio por lesión de nuestro equipo: quién sale (de la línea) y quién entra (de la banca).
-function cambio(s, k) {
+export function cambio(s, k) {
   if (k.team === 'them') return '<span class="muted">Se registra el cambio del rival (no llevamos su plantel).</span>';
   const banca = porNumero(convocados().filter(function (p) { return s.line.indexOf(p.id) < 0; })).map(function (p) { return p.id; });
   let h = '<span class="lbl">Sale</span><div class="chips">' + s.line.map(function (id) { return chipJugador(id, 'callOut', k.out === id); }).join('') + '</div>';
