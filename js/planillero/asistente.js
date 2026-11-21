@@ -27,12 +27,13 @@ export function viewAsistentePull(s) {
   return h + '</div>';
 }
 
-// Punto en juego.
+// Punto en juego. La barra solo dice cómo EMPEZÓ el punto (quién recibió el pull):
+// en este modo no se sigue la posesión, solo las acciones de nuestro equipo y el gol.
 export function viewAsistentePunto(s) {
-  const c = cfg(), nuestro = s.possession === 'us';
+  const c = cfg(), recibimos = s.offense === 'us';
   let h = '<div class="scr">';
-  h += '<div class="paso-h ' + (nuestro ? 'us' : 'th') + '"><span class="disp">' + (nuestro ? 'ATAQUE' : 'DEFENSA') + '</span><span>' +
-    (nuestro ? 'Tenemos el disco' : esc(c.rival) + ' tiene el disco') + '</span></div>';
+  h += '<div class="paso-h ' + (recibimos ? 'us' : 'th') + '"><span class="disp">' + (recibimos ? 'ATAQUE' : 'DEFENSA') + '</span><span>' +
+    (recibimos ? 'Recibimos el pull' : esc(c.rival) + ' recibió el pull') + '</span></div>';
   h += '<span class="lbl">En cancha · punto ' + s.point + '</span>' + lineaEnCancha(s);
   h += '<div class="asis-goles"><button class="btn fill disp" data-a="asGol">Gol<br><small>' + esc(c.club) + '</small></button>' +
     '<button class="btn themfill disp" data-a="themGoal">Gol<br><small>' + esc(c.rival) + '</small></button></div>';
