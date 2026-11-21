@@ -16,7 +16,7 @@ import { store, cfg } from '../almacen.js';
 import { ev, evaluado } from '../coach/evaluacion.js';
 import { PARAM } from './parametros.js';
 import { ROLES, nivelPunto, nivelAtaque, nivelDefensa, nivelGeneral, piezasClave, n1 } from './metricas.js';
-import { zonaDelMarcador, ZONAS } from './zonas.js';
+import { zonaDelMarcador, ZONAS, metaEfectiva } from './zonas.js';
 
 export const MODOS = {
   competencia: { nombre: 'Competencia', ayuda: 'Decide según el marcador: asegurar el ataque, línea fuerte, rotación con piezas clave (ganando por el margen de ventaja) o descanso de piezas clave (perdiendo por el margen de desventaja). Siempre asegura manejo, corte de avance y corte de gol.' },
@@ -175,6 +175,30 @@ export function recomendarLinea(s, req, elegidos, ctx) {
     if (!sumaNivel[g]) return 0;
     return cupoG[g] * nivelGeneral(p) / sumaNivel[g] * jugados - pts(p); // > 0: va atrasado
   }
+  // Mínimo de participación (cfg.minPuntos, 0 = sin mínimo): desde la segunda mitad,
+  // quien no ha llegado al mínimo entra en un puesto que no sea de la columna vertical.
+  // Cuántos entran en cada punto depende de cuánto falta y de cuántos puntos quedan como
+  // mínimo (si el que va arriba anotara todos), así no se dejan todos para el final.
+  const minimo = Math.max(0, parseInt(c.minPuntos, 10) || 0);
+  function minimoParticipacion() {
+    if (!minimo) return;
+    const meta = metaEfectiva(c), lider = Math.max(s.us || 0, s.them || 0);
+    if (lider < Math.ceil(meta / 2)) return;
+    const quedan = Math.max(1, meta - lider);
+    const deudores = libres.concat(cansados).filter(function (p) { return pts(p) < minimo; });
+    if (!deudores.length) return;
+    const deuda = deudores.reduce(function (t, p) { return t + minimo - pts(p); }, 0);
+    let cupo = Math.min(Math.ceil(deuda / quedan), EN_CANCHA - sel.length - 1);
+    deudores.sort(function (a, b) { return (pts(a) - pts(b)) || (descanso(b) - descanso(a)) || (nivelGeneral(b) - nivelGeneral(a)); });
+    deudores.forEach(function (p) {
+      if (cupo <= 0 || !cabe(p)) return;
+      const rol = ['av', 'gol', 'man'].filter(function (r) { return faltan(r) > 0 && (r !== 'man' || ev(p).man >= PARAM.NOTA_PERFIL_MANEJO); })
+        .sort(function (a, b) { return ev(p)[b] - ev(p)[a]; })[0];
+      if (!rol) return;
+      roles[p.id] = rol; cupo--;
+      tomar(p, NOMBRE_POS[rol] + ' (nota ' + ev(p)[rol] + ') · Mínimo de participación: lleva ' + pts(p) + ' de ' + minimo + (minimo === 1 ? ' punto' : ' puntos'));
+    });
+  }
   function textoNivel(p, valor, tipo) { return 'Nivel ' + n1(valor) + ' ' + tipo + txtDesgaste(p); }
 
   // Cada criterio define: estructura (columna vertical), puntaje y motivo.
@@ -235,6 +259,7 @@ export function recomendarLinea(s, req, elegidos, ctx) {
     libres = libres.filter(function (p) { return racha(p) < maxSeg; });
   }
   if (plan.estructura) plan.estructura();
+  minimoParticipacion();
   completar(plan.puntaje, plan.motivo);
   if (sel.length < EN_CANCHA && cansados.length) {
     libres = libres.concat(cansados);

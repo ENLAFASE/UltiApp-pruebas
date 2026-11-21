@@ -45,9 +45,16 @@ export function margenes(c) {
   return { ventaja: Math.max(1, v), desventaja: d };
 }
 
+// Meta con que el motor razona: los puntos para ganar o, si está activado el
+// "marcador esperado por tiempo", el marcador al que se espera llegar (por ejemplo 12).
+export function metaEfectiva(c) {
+  const meta = c.pointsToWin || 15;
+  return c.metaTiempoOn && c.metaTiempo > 0 ? Math.min(c.metaTiempo, meta) : meta;
+}
+
 // us, them = marcador; c = configuración. Devuelve { id, motivo }.
 export function zonaDelMarcador(us, them, c) {
-  const dif = us - them, total = us + them, meta = c.pointsToWin || 15;
+  const dif = us - them, total = us + them, meta = metaEfectiva(c);
   const m = margenes(c);
   const cierre = Math.max(us, them) >= meta - PARAM.CIERRE_PUNTOS;
   const inicio = total < PARAM.INICIO_PUNTOS;
@@ -58,7 +65,7 @@ export function zonaDelMarcador(us, them, c) {
   if (c.compModo === 'ataque' || c.compModo === 'fuerte') return { id: c.compModo, motivo: marcador + ' · modalidad fijada en Ajustes' };
   if (dif < 0) return { id: 'fuerte', motivo: marcador + ': hay que remontar' };
   if (c.crucial) return { id: 'fuerte', motivo: marcador + ' en partido crucial' };
-  if (cierre && dif <= PARAM.PAREJO) return { id: 'fuerte', motivo: marcador + ' en el cierre del partido' };
+  if (cierre && dif <= PARAM.PAREJO) return { id: 'fuerte', motivo: marcador + ' en el cierre del partido' + (meta < (c.pointsToWin || 15) ? ' (se espera terminar en ' + meta + ' por tiempo)' : '') };
   if (inicio) return { id: 'ataque', motivo: 'Inicio del partido' };
   return { id: 'ataque', motivo: marcador };
 }

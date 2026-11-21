@@ -218,6 +218,9 @@ export function viewSettings() {
       numField('margenVentaja', 'Margen de ventaja (+)', 'Ganando por esto o más: rotación con piezas clave.') +
       numField('margenDesventaja', 'Margen de desventaja (−)', 'Perdiendo por esto o más: descansan las piezas clave.') + '</div>';
     m += numField('maxSeguidos', 'Máximo de puntos seguidos por jugador', 'Quien llega a este número de puntos seguidos descansa un punto (salvo que no haya reemplazo de su nivel). 0 = sin máximo.');
+    m += numField('minPuntos', 'Mínimo de puntos por jugador en el partido', 'Desde la segunda mitad, quien no llega a este número entra en un puesto fuera de la columna vertical. 0 = sin mínimo.');
+    m += '<label class="switch">Se espera terminar por tiempo<input type="checkbox" data-cfg="metaTiempoOn"' + (c.metaTiempoOn ? ' checked' : '') + '></label>';
+    if (c.metaTiempoOn) m += numField('metaTiempo', 'Marcador esperado al terminar el tiempo', 'El motor arma el cierre y el medio tiempo pensando en que el partido termina cuando alguien llegue a este número. También se activa desde la pantalla de línea.');
     m += '<p class="muted" style="margin:0">Con el nivel del rival' + (c.crucial ? ' y el partido crucial' : '') + ', se rota desde <b>+' + mg.ventaja + '</b>' +
       (mg.desventaja === Infinity ? ' y <b>no</b> se da descanso a las piezas clave aunque vayamos perdiendo.' : ' y descansan las piezas clave desde <b>−' + mg.desventaja + '</b>.') + '</p>';
     m += seccion('mapa', 'Mapa del marcador', 'Qué hace el motor con cada resultado',

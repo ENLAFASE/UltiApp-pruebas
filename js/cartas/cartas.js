@@ -17,7 +17,7 @@ const RAIZ = document.getElementById('cartas');
 const CFG_BASE = {
   meta: 15, halfAt: 8, inicio: 'ataque', division: 'open', startRatio: '4M3F', abba: true,
   lineMode: 'competencia', compModo: 'auto', rivalNivel: 'similar', crucial: false,
-  margenVentaja: 4, margenDesventaja: 6, maxSeguidos: 4
+  margenVentaja: 4, margenDesventaja: 6, maxSeguidos: 4, minPuntos: 2
 };
 
 /* ---------- datos ---------- */
@@ -168,6 +168,8 @@ function vistaPartido() {
   h += '<div class="grid2">' + num('margenVentaja', 'Margen de ventaja (+)') + num('margenDesventaja', 'Margen de desventaja (−)') + '</div>';
   h += '<div class="field"><label class="lbl" for="cf-maxSeguidos">Máximo de puntos seguidos por jugador</label><input id="cf-maxSeguidos" type="number" min="0" inputmode="numeric" data-cf="maxSeguidos" value="' + c.maxSeguidos + '">' +
     '<span class="muted">Quien llega a este número de puntos seguidos descansa un punto (salvo que no haya reemplazo de su nivel). 0 = sin máximo.</span></div>';
+  h += '<div class="field"><label class="lbl" for="cf-minPuntos">Mínimo de puntos por jugador en el partido</label><input id="cf-minPuntos" type="number" min="0" inputmode="numeric" data-cf="minPuntos" value="' + (c.minPuntos == null ? 2 : c.minPuntos) + '">' +
+    '<span class="muted">Desde la segunda mitad, quien no llega a este número entra en un puesto fuera de la columna vertical. 0 = sin mínimo.</span></div>';
   h += '<p class="muted" style="margin:0">Toda línea lleva <b>3 manejos, 2 cortes de avance y 2 cortes de gol</b>.</p>';
   h += '<p class="muted" style="margin:0">Se rota desde <b>+' + m.ventaja + '</b>' + (m.desventaja === Infinity ? ' y nunca descansan las piezas clave.' : ' y descansan las piezas clave desde <b>−' + m.desventaja + '</b>.') + '</p>';
   h += '<button class="btn big fill disp full" data-a="paso" data-v="tablero">Ver el tablero</button>';
@@ -427,7 +429,7 @@ RAIZ.addEventListener('change', function (ev) {
   else if (el.hasAttribute('data-cf')) {
     const k = el.getAttribute('data-cf');
     const n = parseInt(el.value, 10);
-    st.cfg[k] = el.type !== 'number' ? el.value : k === 'maxSeguidos' ? Math.max(0, isNaN(n) ? CFG_BASE[k] : n) : Math.max(1, n || CFG_BASE[k]);
+    st.cfg[k] = el.type !== 'number' ? el.value : (k === 'maxSeguidos' || k === 'minPuntos') ? Math.max(0, isNaN(n) ? CFG_BASE[k] : n) : Math.max(1, n || CFG_BASE[k]);
     if (k === 'meta') st.cfg.meta = Math.min(Math.max(st.cfg.meta, 5), 21);
     sucio();
   }

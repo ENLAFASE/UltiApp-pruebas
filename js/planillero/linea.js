@@ -126,7 +126,10 @@ export function viewLine(s) {
   let zonaTxt = '';
   if (modoActual() === 'competencia') {
     const z = zonaDelMarcador(s.us, s.them, c);
-    zonaTxt = ' · <span class="zona-tag ' + ZONAS[z.id].clase + '">' + ZONAS[z.id].corto + '</span>';
+    zonaTxt = ' · <span class="zona-tag ' + ZONAS[z.id].clase + '">' + ZONAS[z.id].corto + '</span>' +
+      ' <button class="meta-t" data-a="metaTiempo" aria-pressed="' + (c.metaTiempoOn ? 'true' : 'false') + '" aria-label="Marcador esperado: ' +
+      (c.metaTiempoOn ? 'por tiempo, a ' + c.metaTiempo + '. Toca para volver a ' + c.pointsToWin : c.pointsToWin + ' puntos. Toca si el partido terminará por tiempo en ' + c.metaTiempo) + '">' +
+      (c.metaTiempoOn ? '⏱ a ' + c.metaTiempo : 'a ' + c.pointsToWin) + '</button>';
   }
   h += '<div class="cuenta">Punto ' + s.point + ': <b class="' + (n === EN_CANCHA ? 'ok' : 'warn') + '">' + n + '/7</b>' +
     (req ? ' · <span class="gH">H</span> <b class="' + (t.M === req.M ? 'ok' : 'warn') + '">' + t.M + '/' + req.M + '</b> · <span class="gM">M</span> <b class="' + (t.F === req.F ? 'ok' : 'warn') + '">' + t.F + '/' + req.F + '</b>' : '') + zonaTxt + '</div>';

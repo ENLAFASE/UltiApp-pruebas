@@ -102,3 +102,21 @@ Una simulación de miles de partidos (con fin por tiempo en 12, 13, 14 o 15 y mi
 - **C · Menos peso a la posición** (`PARAM.PESO_POSICION` de 0,5 a 0,25): la nota general pesa más que la nota en la posición.
 
 Resultado con el plantel Mixto de Húsares (16): la distancia promedio a la cuota bajó de 11,8 a 8,4 puntos de %, la racha máxima de 10 a 4, y los partidos ganados (modelo donde una línea mejor anota más) de 54 % a 50 %. Quedan pendientes de decidir: tope duro (descanso obligado al doble del máximo, para planteles de 8), subir la equidad a 0,30, un mínimo de participación y el marcador esperado por tiempo para el cierre.
+
+## 9. Equidad 0,30, mínimo de participación y marcador esperado (2026-11-21)
+
+- **Equidad** sube a `PARAM.EQUIDAD = 0.30`.
+- **Mínimo de participación** (`cfg.minPuntos`, por defecto 2; 0 = sin mínimo; en Ajustes y en las Cartas): desde la segunda mitad, quien no ha llegado al mínimo entra en un puesto fuera de la columna vertical (prefiere avance o gol; manejo solo con nota 3+). Cuántos entran por punto = deuda total ÷ puntos que quedan como mínimo (si el que va arriba anotara todos), para no dejarlos todos para el final.
+- **Marcador esperado por tiempo** (`cfg.metaTiempoOn`, `cfg.metaTiempo`, por defecto 12): si está activado, el motor razona con esa meta (`metaEfectiva()` en `zonas.js`) para el cierre ("línea fuerte") y para el mínimo. Se activa o desactiva durante el partido con el botón "a 15 / ⏱ a 12" de la pantalla de línea, y el número se cambia en Ajustes.
+
+Simulación con el plantel Mixto de Húsares (16; 2.000 partidos por versión, fin por tiempo en 12-15):
+
+| Versión | Distancia a la cuota | Racha máx. | Peor caso bajo 2 pts | Papalote | Ganados* |
+|---|---|---|---|---|---|
+| Original | 12,4 pp | 12 | 93,5 % | 0,6 pts | 52,0 % |
+| A + B + C (0,15) | 8,8 | 4 | 83,2 % | 0,6 | 53,2 % |
+| + equidad 0,30 | 6,8 | 4 | 84,1 % | 0,5 | 52,2 % |
+| + mínimo 2 | 6,2 | 4 | 0,5 % | 2,2 | 49,6 % |
+| + marcador esperado | 6,1 | 4 | 0 % | 2,2 | 49,1 % |
+
+\* modelo donde una línea con mejor nivel anota un poco más seguido (margen ±1 punto). Con el marcador esperado, los puntos de Papalote en los últimos 3 del partido bajan de 24 % a 14 %. Pendiente: preferir cumplir el mínimo en puntos de rotación o de defensa antes que con el partido apretado.

@@ -165,6 +165,12 @@ function alTocar(ev) {
       break;
     }
     case 'suggest': suggestLine(s); break;
+    case 'metaTiempo':
+      // Marcador esperado por tiempo: el motor cambia el cierre y el mínimo de participación.
+      store.cfg.metaTiempoOn = !store.cfg.metaTiempoOn;
+      ui.sug = null;
+      toast(store.cfg.metaTiempoOn ? 'El motor espera terminar por tiempo en ' + store.cfg.metaTiempo + ' (se cambia en Ajustes)' : 'El motor vuelve a esperar ' + store.cfg.pointsToWin + ' puntos');
+      break;
     case 'openWhy': ui.modal = { kind: 'why', title: '¿Por qué esta línea?' }; break;
     case 'openLineInfo': ui.modal = { kind: 'lineinfo', title: 'Línea marcada' }; break;
     case 'clearSel': ui.sel = []; ui.sug = null; break;
@@ -463,7 +469,7 @@ function alCambiar(ev) {
   if (el.type === 'checkbox') c[key] = el.checked;
   else if (el.type === 'number') c[key] = Math.max(0, parseInt(el.value, 10) || 0);
   else c[key] = el.value.trim() || DEF_CFG[key];
-  if (key === 'margenVentaja' || key === 'margenDesventaja') c[key] = Math.max(1, c[key]);
+  if (key === 'margenVentaja' || key === 'margenDesventaja' || key === 'metaTiempo') c[key] = Math.max(1, c[key]);
   if (key === 'division') {
     // "mixed" se mantiene para el resto de la app; los del otro género pasan a no convocados.
     c.mixed = c.division === 'mixto';
