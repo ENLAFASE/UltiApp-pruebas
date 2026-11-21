@@ -86,3 +86,9 @@ El partido se puede ver como un tablero: la ficha de nuestro equipo parte en 0-0
 - Eso reduce todo a **1.769 situaciones** en **205 marcadores** alcanzables (máximo 12 por marcador). Una carta por marcador, con una fila por cada forma de llegar.
 - Lo único que sí depende de la ruta completa es el desgaste acumulado (puntos jugados por cada uno): se estima siguiendo la **ruta más probable** hasta cada situación.
 - Pendiente: probar en cancha si conviene sumar el tiempo (cap) como variable de las cartas.
+
+## 7. Posiciones y máximo de puntos seguidos (2026-11-21)
+
+- **Posiciones:** toda línea, en ataque y en defensa, lleva **3 manejos, 2 cortes de avance y 2 cortes de gol**. Primero se eligen los 3 principales (la columna vertical) y después se llenan los otros 4 puestos con el criterio de la zona más la nota en esa posición. Los manejos deben tener perfil de manejador (nota 3 o más).
+- **Máximo de puntos seguidos:** con el partido apretado (asegurar el ataque y línea fuerte), quien llegó al máximo descansa un punto (por defecto 4; se cambia en Ajustes y en las Cartas). Si por cansancio no queda nadie de nivel para la columna vertical o el 3.er manejo, juega igual uno de los cansados y el motivo lo indica. Con planteles normales (14 o más) eso no ocurre; con 9 o 10 jugadores sí, a veces.
+- **Asegurar el ataque en defensa:** la columna vertical se elige entre los buenos (nota 4 o más), rotando entre ellos; no siempre entran los mejores. El núcleo ofensivo descansa cuando hay alternativa buena.

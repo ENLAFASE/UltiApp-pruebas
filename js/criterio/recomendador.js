@@ -41,10 +41,14 @@ export function recomendarLinea(s, req, elegidos, ctx) {
   const modo = MODOS[c.lineMode] ? c.lineMode : 'entrenamiento';
   const lista = ctx ? ctx.roster.filter(function (p) { return !p.noConv; }) : convocados();
   const enLista = function (id) { return lista.some(function (p) { return p.id === id; }); };
-  const sel = elegidos.filter(enLista), motivos = {}, roles = {}, tengo = { M: 0, F: 0 };
+  const sel = elegidos.filter(enLista), motivos = {}, roles = {}, principales = [], tengo = { M: 0, F: 0 };
   const P = function (id) { return lista.find(function (x) { return x.id === id; }); };
   sel.forEach(function (id) { motivos[id] = 'Elegido por ti'; tengo[genero(P(id))]++; });
   let libres = lista.filter(function (p) { return sel.indexOf(p.id) < 0; });
+  // Quienes llegaron al máximo de puntos seguidos (partido apretado): descansan,
+  // salvo que no haya nadie de su nivel para la columna vertical o el 3.er manejo.
+  let cansados = [];
+  const NOTA_RESCATE = ' (pasa el máximo de puntos seguidos: no hay reemplazo de su nivel)';
 
   /* ----- desgaste ----- */
   const primerPunto = !s.lastLine.length;
@@ -65,15 +69,54 @@ export function recomendarLinea(s, req, elegidos, ctx) {
   function tomar(p, motivo) {
     sel.push(p.id); tengo[genero(p)]++; motivos[p.id] = motivo;
     libres = libres.filter(function (x) { return x.id !== p.id; });
+    cansados = cansados.filter(function (x) { return x.id !== p.id; });
   }
-  // Completa hasta 7 con el mejor puntaje (mayor = mejor).
-  function completar(puntaje, motivoDe) {
-    const orden = function (a, b) { return (puntaje(b) - puntaje(a)) || ((+a.num || 0) - (+b.num || 0)); };
-    libres.slice().sort(orden).forEach(function (p) { if (cabe(p)) tomar(p, motivoDe(p)); });
-    if (sel.length < EN_CANCHA) { // faltan jugadores de un género: completar con quien haya
-      libres.slice().sort(orden).forEach(function (p) {
-        if (sel.length < EN_CANCHA) { sel.push(p.id); motivos[p.id] = motivoDe(p) + ' (completa la línea; no alcanza la proporción)'; }
+  // Posiciones: toda línea lleva 3 manejos, 2 cortes de avance y 2 cortes de gol.
+  const NOMBRE_POS = { man: 'Manejo', av: 'Corte de avance', gol: 'Corte de gol' };
+  function faltan(rol) { return PARAM.POSICIONES[rol] - sel.filter(function (id) { return roles[id] === rol; }).length; }
+  // Los elegidos a mano sin posición toman la que falta y mejor les calza.
+  function ubicarElegidos() {
+    sel.filter(function (id) { return !roles[id]; })
+      .sort(function (x, y) { const ex = ev(P(x)), ey = ev(P(y)); return Math.max(ey.man, ey.av, ey.gol) - Math.max(ex.man, ex.av, ex.gol); })
+      .forEach(function (id) {
+        const libresPos = ['man', 'av', 'gol'].filter(function (r) { return faltan(r) > 0; });
+        const opciones = libresPos.length ? libresPos : ['man', 'av', 'gol'];
+        roles[id] = opciones.reduce(function (m, r) { return ev(P(id))[r] > ev(P(id))[m] ? r : m; });
       });
+  }
+  // Llena los puestos que faltan (primero manejos, luego avance y gol) con el mejor
+  // puntaje del criterio más la nota en esa posición. Para manejo se exige perfil
+  // de manejador (nota 3 o más, o la mejor disponible).
+  function completar(puntaje, motivoDe, sufijo) {
+    ubicarElegidos();
+    while (sel.length < EN_CANCHA && libres.length) {
+      const rol = faltan('man') > 0 ? 'man' : faltan('av') > 0 ? 'av' : faltan('gol') > 0 ? 'gol' : null;
+      let cands = libres.filter(cabe), forzado = false, rescate = false;
+      if (!cands.length) { cands = libres.slice(); forzado = true; } // no alcanza la proporción de géneros
+      if (rol === 'man') {
+        // Perfil de manejador: nota 3 o más (o la mejor disponible). Si entre los descansados
+        // no hay ninguno, entra un manejador que llegó al máximo de seguidos.
+        const extra = cansados.filter(cabe);
+        const mejorMan = Math.max.apply(null, cands.concat(extra).map(function (p) { return ev(p).man; }));
+        const umbral = Math.min(PARAM.NOTA_PERFIL_MANEJO, mejorMan);
+        const perfil = cands.filter(function (p) { return ev(p).man >= umbral; });
+        if (perfil.length) cands = perfil;
+        else {
+          const conPerfil = extra.filter(function (p) { return ev(p).man >= umbral; });
+          if (conPerfil.length) { cands = conPerfil; rescate = true; }
+        }
+      }
+      if (!cands.length) break;
+      const valor = function (p) {
+        const pos = rol || ['man', 'av', 'gol'].reduce(function (m, r) { return ev(p)[r] > ev(p)[m] ? r : m; });
+        return puntaje(p) + PARAM.PESO_POSICION * (ev(p)[pos] - 3);
+      };
+      cands.sort(function (a, b) { return (valor(b) - valor(a)) || ((+a.num || 0) - (+b.num || 0)); });
+      const p = cands[0];
+      const pos = rol || ['man', 'av', 'gol'].reduce(function (m, r) { return ev(p)[r] > ev(p)[m] ? r : m; });
+      roles[p.id] = pos;
+      tomar(p, NOMBRE_POS[pos] + ' (nota ' + ev(p)[pos] + ') · ' + motivoDe(p) +
+        (forzado ? ' (completa la línea; no alcanza la proporción)' : '') + (rescate ? NOTA_RESCATE : (sufijo || '')));
     }
   }
   // Asegura la columna vertical: un manejo, un corte de avance y un corte de gol
@@ -88,13 +131,21 @@ export function recomendarLinea(s, req, elegidos, ctx) {
     ROLES_ESTRUCTURA.forEach(function (rol) {
       // ¿Alguien ya elegido (a mano) cubre el rol y no tiene otro rol asignado?
       const yaEsta = sel.find(function (id) { return !asignados.has(id) && ev(P(id))[rol.k] >= PARAM.NOTA_BUENA; });
-      if (yaEsta) { asignados.add(yaEsta); return; }
+      if (yaEsta) { asignados.add(yaEsta); roles[yaEsta] = rol.k; principales.push(yaEsta); return; }
       let cands = libres.filter(cabe);
+      const cansadosCabe = cansados.filter(cabe);
+      if (!cands.length && !cansadosCabe.length) return;
+      // El principal siempre es BUENO en su posición (nota 4 o más, o la mejor disponible).
+      // "evitar" solo elige entre los buenos: si fuera de ese grupo no hay nadie bueno,
+      // se usa igual a alguien del grupo (la columna vertical no se debilita).
+      const notaMin = Math.min(PARAM.NOTA_BUENA, Math.max.apply(null, cands.concat(cansadosCabe).map(function (p) { return ev(p)[rol.k]; })));
+      cands = cands.filter(function (p) { return ev(p)[rol.k] >= notaMin; });
+      let rescate = false;
+      if (!cands.length) { cands = cansadosCabe.filter(function (p) { return ev(p)[rol.k] >= notaMin; }); rescate = true; }
       if (evitar) {
         const fuera = cands.filter(function (p) { return !evitar.has(p.id); });
         if (fuera.length) cands = fuera;
       }
-      if (!cands.length) return;
       let mejor = Math.max.apply(null, cands.map(function (p) { return ev(p)[rol.k]; }));
       if (preferir) {
         const clave = cands.filter(function (p) { return preferir.has(p.id) && ev(p)[rol.k] >= Math.min(PARAM.NOTA_BUENA, mejor); });
@@ -107,14 +158,15 @@ export function recomendarLinea(s, req, elegidos, ctx) {
         return rotar ? (rot || nota) : (nota || (desgaste(b, 0.5) - desgaste(a, 0.5)));
       });
       const p = buenos[0];
-      asignados.add(p.id); roles[p.id] = rol.k; // qué rol de la columna vertical cubre
+      asignados.add(p.id); roles[p.id] = rol.k; principales.push(p.id); // rol principal de la columna vertical
       const esClave = preferir && preferir.has(p.id);
-      tomar(p, rol.principal + ' (' + rol.nombre + ' ' + ev(p)[rol.k] + ')' + (esClave ? (sufijo || '') : '') + txtDesgaste(p));
+      tomar(p, rol.principal + ' (' + rol.nombre + ' ' + ev(p)[rol.k] + ')' + (esClave ? (sufijo || '') : '') + txtDesgaste(p) + (rescate ? NOTA_RESCATE : ''));
     });
   }
   function textoNivel(p, valor, tipo) { return 'Nivel ' + n1(valor) + ' ' + tipo + txtDesgaste(p); }
 
-  let resumen, zona = null;
+  // Cada criterio define: estructura (columna vertical), puntaje y motivo.
+  let resumen, zona = null, plan;
   if (modo === 'competencia') {
     zona = zonaDelMarcador(s.us, s.them, c);
     resumen = 'Competencia · ' + ZONAS[zona.id].nombre + ' · ' + zona.motivo;
@@ -122,42 +174,61 @@ export function recomendarLinea(s, req, elegidos, ctx) {
 
     if (zona.id === 'rotacion') {
       // Piezas clave en la estructura; el resto, minutos para el nivel más bajo.
-      asegurarEstructura(true, null, ' · pieza clave', piezasClave(lista, c.mixed));
-      completar(function (p) { return (5 - nivelPunto(p, ataque)) + desgaste(p, B.rotacion); },
-        function (p) { return 'Suma minutos (nivel ' + n1(nivelPunto(p, ataque)) + ')' + txtDesgaste(p); });
+      const clave = piezasClave(lista, c.mixed);
+      plan = { estructura: function () { asegurarEstructura(true, null, ' · pieza clave', clave); },
+        puntaje: function (p) { return (5 - nivelPunto(p, ataque)) + desgaste(p, B.rotacion); },
+        motivo: function (p) { return 'Suma minutos (nivel ' + n1(nivelPunto(p, ataque)) + ')' + txtDesgaste(p); } };
 
     } else if (zona.id === 'descanso') {
       const clave = piezasClave(lista, c.mixed);
-      asegurarEstructura(true, clave);
-      completar(function (p) { return (clave.has(p.id) ? -10 : 0) + desgaste(p, B.rotacion) + 0.2 * nivelPunto(p, ataque); },
-        function (p) { return (clave.has(p.id) ? 'Pieza clave (no alcanzan los demás)' : 'Juega mientras descansan las piezas clave') + txtDesgaste(p); });
+      plan = { estructura: function () { asegurarEstructura(true, clave); },
+        puntaje: function (p) { return (clave.has(p.id) ? -10 : 0) + desgaste(p, B.rotacion) + 0.2 * nivelPunto(p, ataque); },
+        motivo: function (p) { return (clave.has(p.id) ? 'Pieza clave (no alcanzan los demás)' : 'Juega mientras descansan las piezas clave') + txtDesgaste(p); } };
 
     } else if (zona.id === 'fuerte') {
-      asegurarEstructura(false);
-      completar(function (p) { return nivelGeneral(p) + desgaste(p, B.fuerte); },
-        function (p) { return textoNivel(p, nivelGeneral(p), 'general'); });
+      plan = { estructura: function () { asegurarEstructura(false); },
+        puntaje: function (p) { return nivelGeneral(p) + desgaste(p, B.fuerte); },
+        motivo: function (p) { return textoNivel(p, nivelGeneral(p), 'general'); } };
 
-    } else if (ataque) { // asegurar el ataque, punto en que recibimos
-      asegurarEstructura(false);
-      completar(function (p) { return nivelAtaque(p) + desgaste(p, B.ataque); },
-        function (p) { return textoNivel(p, nivelAtaque(p), 'en ataque'); });
+    } else if (ataque) { // asegurar el ataque, punto en que recibimos: lo mejor para atacar
+      plan = { estructura: function () { asegurarEstructura(false); },
+        puntaje: function (p) { return nivelAtaque(p) + desgaste(p, B.ataque); },
+        motivo: function (p) { return textoNivel(p, nivelAtaque(p), 'en ataque'); } };
 
-    } else { // asegurar el ataque, punto en que defendemos: descansa el núcleo ofensivo
+    } else {
+      // Asegurar el ataque, punto en que defendemos: hay rotación. La columna vertical
+      // la forman jugadores BUENOS en su posición (nota 4 o más), rotando entre ellos
+      // (no necesariamente los mejores), y descansa el núcleo ofensivo.
       const nucleo = nucleoOfensivo(lista, c.mixed);
-      asegurarEstructura(true, nucleo);
-      completar(function (p) { return nivelDefensa(p) - (nucleo.has(p.id) ? PARAM.CASTIGO_NUCLEO_ATAQUE : 0) + desgaste(p, B.ataque); },
-        function (p) { return nucleo.has(p.id) ? textoNivel(p, nivelDefensa(p), 'en defensa') + ' (del núcleo ofensivo)' : textoNivel(p, nivelDefensa(p), 'en defensa') + ' · el núcleo ofensivo descansa'; });
+      plan = { estructura: function () { asegurarEstructura(true, nucleo); },
+        puntaje: function (p) { return nivelDefensa(p) - (nucleo.has(p.id) ? PARAM.CASTIGO_NUCLEO_ATAQUE : 0) + desgaste(p, B.rotacion); },
+        motivo: function (p) { return nucleo.has(p.id) ? textoNivel(p, nivelDefensa(p), 'en defensa') + ' (del núcleo ofensivo)' : textoNivel(p, nivelDefensa(p), 'en defensa') + ' · rota en defensa'; } };
     }
 
   } else if (modo === 'amistoso') {
     resumen = 'Amistoso · rota, con manejo, corte de avance y corte de gol asegurados.';
-    asegurarEstructura(true);
-    completar(function (p) { return desgaste(p, 1); }, rotacionTxt);
+    plan = { estructura: function () { asegurarEstructura(true); }, puntaje: function (p) { return desgaste(p, 1); }, motivo: rotacionTxt };
 
   } else {
     resumen = 'Entrenamiento · rotación pareja según puntos jugados.';
-    completar(function (p) { return desgaste(p, 1); }, rotacionTxt);
+    plan = { estructura: null, puntaje: function (p) { return desgaste(p, 1); }, motivo: rotacionTxt };
   }
+
+  // Máximo de puntos seguidos por jugador cuando el partido va apretado (zonas
+  // "asegurar el ataque" y "línea fuerte"): quien llegó al máximo descansa este
+  // punto, salvo que no haya reemplazo. Así se mantiene el nivel de juego.
+  const maxSeg = Math.max(0, parseInt(c.maxSeguidos, 10) || 0);
+  if (zona && (zona.id === 'ataque' || zona.id === 'fuerte') && maxSeg > 0) {
+    cansados = libres.filter(function (p) { return racha(p) >= maxSeg; });
+    libres = libres.filter(function (p) { return racha(p) < maxSeg; });
+  }
+  if (plan.estructura) plan.estructura();
+  completar(plan.puntaje, plan.motivo);
+  if (sel.length < EN_CANCHA && cansados.length) {
+    libres = libres.concat(cansados);
+    completar(plan.puntaje, plan.motivo, NOTA_RESCATE);
+  }
+  if (cansados.length) resumen += ' · descansan ' + cansados.length + ' por el máximo de ' + maxSeg + ' seguidos';
 
   function rotacionTxt(p) {
     if (primerPunto) return 'Primer punto: rotación por número';
@@ -165,7 +236,7 @@ export function recomendarLinea(s, req, elegidos, ctx) {
   }
 
   const sinEvaluar = lista.filter(function (p) { return !evaluado(p); }).length;
-  return { ids: sel, resumen: resumen, motivos: motivos, roles: roles, sinEvaluar: sinEvaluar, modo: modo, zona: zona && zona.id };
+  return { ids: sel, resumen: resumen, motivos: motivos, roles: roles, principales: principales, descansanMax: cansados.map(function (p) { return p.id; }), sinEvaluar: sinEvaluar, modo: modo, zona: zona && zona.id };
 }
 
 // Los mejores para atacar (los que se reservan para el próximo punto de ataque).

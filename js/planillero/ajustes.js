@@ -217,6 +217,7 @@ export function viewSettings() {
     m += '<div class="grid2">' +
       numField('margenVentaja', 'Margen de ventaja (+)', 'Ganando por esto o más: rotación con piezas clave.') +
       numField('margenDesventaja', 'Margen de desventaja (−)', 'Perdiendo por esto o más: descansan las piezas clave.') + '</div>';
+    m += numField('maxSeguidos', 'Máximo de puntos seguidos por jugador', 'Con el partido apretado (asegurar el ataque o línea fuerte), quien llega a este número descansa un punto. 0 = sin máximo.');
     m += '<p class="muted" style="margin:0">Con el nivel del rival' + (c.crucial ? ' y el partido crucial' : '') + ', se rota desde <b>+' + mg.ventaja + '</b>' +
       (mg.desventaja === Infinity ? ' y <b>no</b> se da descanso a las piezas clave aunque vayamos perdiendo.' : ' y descansan las piezas clave desde <b>−' + mg.desventaja + '</b>.') + '</p>';
     m += seccion('mapa', 'Mapa del marcador', 'Qué hace el motor con cada resultado',

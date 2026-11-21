@@ -18,6 +18,12 @@ export const PARAM = {
   PESO_DEFENSA: { ofensa: 0.35, defensa: 0.65 },  // puntos en que sacamos
   PESO_GENERAL: { ofensa: 0.55, defensa: 0.45 },  // "línea fuerte" y ranking general
 
+  // Posiciones de cada línea (criterio general para todas las líneas, en ataque y en defensa):
+  // 3 manejos, 2 cortes de avance y 2 cortes de gol.
+  POSICIONES: { man: 3, av: 2, gol: 2 },
+  NOTA_PERFIL_MANEJO: 3,  // desde esta nota de manejo alguien tiene "perfil de manejador"
+  PESO_POSICION: 0.5,     // cuánto pesa la nota en la posición al llenar cada puesto
+
   // Piezas clave: el mejor tramo del plantel convocado (por género si es mixto).
   PIEZAS_CLAVE_FRACCION: 0.35,
 

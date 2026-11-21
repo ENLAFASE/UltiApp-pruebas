@@ -17,7 +17,7 @@ const RAIZ = document.getElementById('cartas');
 const CFG_BASE = {
   meta: 15, halfAt: 8, inicio: 'ataque', division: 'open', startRatio: '4M3F', abba: true,
   lineMode: 'competencia', compModo: 'auto', rivalNivel: 'similar', crucial: false,
-  margenVentaja: 4, margenDesventaja: 6
+  margenVentaja: 4, margenDesventaja: 6, maxSeguidos: 4
 };
 
 /* ---------- datos ---------- */
@@ -166,6 +166,9 @@ function vistaPartido() {
   h += sel('rivalNivel', 'Nivel del rival', { menor: 'Menor que el nuestro', similar: 'Similar', mayor: 'Mayor que el nuestro' });
   h += '<label class="switch">Partido crucial (hay que ganar sí o sí)<input type="checkbox" data-cfk="crucial"' + (c.crucial ? ' checked' : '') + '></label>';
   h += '<div class="grid2">' + num('margenVentaja', 'Margen de ventaja (+)') + num('margenDesventaja', 'Margen de desventaja (−)') + '</div>';
+  h += '<div class="field"><label class="lbl" for="cf-maxSeguidos">Máximo de puntos seguidos por jugador</label><input id="cf-maxSeguidos" type="number" min="0" inputmode="numeric" data-cf="maxSeguidos" value="' + c.maxSeguidos + '">' +
+    '<span class="muted">Con el partido apretado (asegurar el ataque o línea fuerte), quien llega a este número descansa un punto. 0 = sin máximo.</span></div>';
+  h += '<p class="muted" style="margin:0">Toda línea lleva <b>3 manejos, 2 cortes de avance y 2 cortes de gol</b>.</p>';
   h += '<p class="muted" style="margin:0">Se rota desde <b>+' + m.ventaja + '</b>' + (m.desventaja === Infinity ? ' y nunca descansan las piezas clave.' : ' y descansan las piezas clave desde <b>−' + m.desventaja + '</b>.') + '</p>';
   h += '<button class="btn big fill disp full" data-a="paso" data-v="tablero">Ver el tablero</button>';
   return h + '</section>';
@@ -232,12 +235,19 @@ function tablaPuntos(k, actual) {
   return h + '</div>';
 }
 
+const POS = { man: 'Manejo', av: 'Avance', gol: 'Gol' };
+// Orden en pantalla: manejos, avance y gol; dentro de cada posición, el principal primero.
+function porPosicion(e) {
+  const orden = { man: 0, av: 1, gol: 2 };
+  return e.linea.slice().sort(function (x, y) {
+    return (orden[e.roles[x]] - orden[e.roles[y]]) || ((e.principales.indexOf(y) >= 0) - (e.principales.indexOf(x) >= 0));
+  });
+}
 function lineaHTML(e, detalle) {
-  const roles = { man: 'Manejo', av: 'Avance', gol: 'Gol' };
-  return '<ol class="ct-linea">' + e.linea.map(function (id) {
-    const p = P(id), rol = e.roles[id], nuevo = e.entran.indexOf(id) >= 0 && e.prev;
-    return '<li class="' + (p && p.g === 'F' ? 'M' : 'H') + '"><b>' + esc(p ? p.name || '#' + p.num : '?') + '</b> <small>#' + esc(p ? p.num : '?') + '</small>' +
-      (rol ? '<span class="ct-rol">' + roles[rol] + '</span>' : '') +
+  return '<ol class="ct-linea">' + porPosicion(e).map(function (id) {
+    const p = P(id), rol = e.roles[id], nuevo = e.entran.indexOf(id) >= 0 && e.prev, principal = e.principales.indexOf(id) >= 0;
+    return '<li class="' + (p && p.g === 'F' ? 'M' : 'H') + '"><span class="ct-pos ' + rol + '">' + POS[rol] + (principal ? ' ★' : '') + '</span>' +
+      '<b>' + esc(p ? p.name || '#' + p.num : '?') + '</b> <small>#' + esc(p ? p.num : '?') + '</small>' +
       (e.prev ? (nuevo ? '<span class="ct-tag entra">entra</span>' : '<span class="ct-tag repite">repite</span>') : '') +
       (detalle ? '<span class="muted ct-mot">' + esc(e.motivos[id] || '') + '</span>' : '') + '</li>';
   }).join('') + '</ol>';
@@ -315,13 +325,13 @@ function cartaCasilla(cas, enPantalla) {
   cas.situaciones.filter(function (e) { return enPantalla || e.r <= st.rachaImp; }).forEach(function (e) {
     h += '<tr><th class="' + (e.d || 'ini') + '">' + (e.d ? (e.d === 'us' ? '→' : '↓') + (e.r > 1 ? '×' + e.r : '') : '0–0') + '</th>' +
       '<td class="od ' + (e.ataque ? 'at' : 'df') + '">' + (e.ataque ? 'A' : 'D') + '</td><td class="ln">' +
-      e.linea.map(function (id) {
-        const p = P(id), rol = e.roles[id];
-        return '<span class="' + (p && p.g === 'F' ? 'M' : 'H') + (rol ? ' r' : '') + '">' + esc(abrev(p)) + (rol ? '<sup>' + { man: 'M', av: 'A', gol: 'G' }[rol] + '</sup>' : '') + '</span>';
+      porPosicion(e).map(function (id) {
+        const p = P(id), rol = e.roles[id], principal = e.principales.indexOf(id) >= 0;
+        return '<span class="' + (p && p.g === 'F' ? 'M' : 'H') + (principal ? ' r' : '') + '">' + esc(abrev(p)) + '<sup>' + { man: 'M', av: 'A', gol: 'G' }[rol] + '</sup></span>';
       }).join(' ') + '</td></tr>';
   });
   h += '</tbody></table>';
-  if (enPantalla) h += '<span class="muted">→ = llegamos con gol nuestro · ↓ = con gol rival · ×2 = segundo seguido. A/D = jugamos el punto en ataque o defensa. Letras chicas: M manejo, A avance, G gol principales.</span>';
+  if (enPantalla) h += '<span class="muted">→ = llegamos con gol nuestro · ↓ = con gol rival · ×2 = segundo seguido. A/D = jugamos el punto en ataque o defensa. Letras chicas: posición (M manejo, A avance, G gol); en negrita, los principales.</span>';
   return h + '</div>';
 }
 
@@ -350,7 +360,7 @@ function vistaImprimir() {
   h += '<div id="impresion"><div class="ct-portada"><h1 class="disp">Cartas de juego</h1><p><b>' + esc(resumenVariante()) + '</b></p>' +
     '<p>Plantel: ' + convocados().map(function (p) { return esc(abrev(p)) + ' = ' + esc(p.name) + ' #' + esc(p.num); }).join(' · ') + '</p>' +
     '<p><b>Cómo usarlas:</b> busca la carta del marcador actual. Elige la fila según cómo llegaste: <b>→</b> si el último gol fue nuestro, <b>↓</b> si fue del rival; <b>×2, ×3…</b> si es el segundo, tercero… gol seguido del mismo equipo. ' +
-    '<b>A/D</b> indica si el próximo punto lo jugamos en ataque o en defensa. Las letras chicas marcan al manejo (M), corte de avance (A) y corte de gol (G) principales; el color, si es hombre o mujer.</p>' +
+    '<b>A/D</b> indica si el próximo punto lo jugamos en ataque o en defensa. Cada línea tiene 3 manejos (M), 2 cortes de avance (A) y 2 cortes de gol (G): la letra chica es la posición y en negrita están los principales. El color indica si es hombre o mujer.</p>' +
     '<p class="leyenda">' + Object.keys(ZONAS).map(function (z) { return '<span><i class="mapa-c ' + ZONAS[z].clase + '"></i>' + ZONAS[z].nombre + '</span>'; }).join('') + '</p></div>';
   h += '<div class="ct-cuaderno">' + casillas.map(function (cas) { return cartaCasilla(cas, false); }).join('') + '</div></div>';
   return h;
@@ -416,7 +426,8 @@ RAIZ.addEventListener('change', function (ev) {
   }
   else if (el.hasAttribute('data-cf')) {
     const k = el.getAttribute('data-cf');
-    st.cfg[k] = el.type === 'number' ? Math.max(1, parseInt(el.value, 10) || CFG_BASE[k]) : el.value;
+    const n = parseInt(el.value, 10);
+    st.cfg[k] = el.type !== 'number' ? el.value : k === 'maxSeguidos' ? Math.max(0, isNaN(n) ? CFG_BASE[k] : n) : Math.max(1, n || CFG_BASE[k]);
     if (k === 'meta') st.cfg.meta = Math.min(Math.max(st.cfg.meta, 5), 21);
     sucio();
   }

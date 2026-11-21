@@ -29,6 +29,7 @@ export const DEF_CFG = {
   crucial: false,       // partido que hay que ganar sí o sí
   margenVentaja: 4,     // ganando por esto o más: rotación con piezas clave
   margenDesventaja: 6,  // perdiendo por esto o más: descanso de las piezas clave
+  maxSeguidos: 4,       // partido apretado: máximo de puntos seguidos por jugador (0 = sin máximo)
   // Tipo de partido: 'mixto', 'open' o 'femenino'. "mixed" se mantiene
   // sincronizado (true solo en mixto) porque lo usa el resto de la app.
   division: 'mixto',

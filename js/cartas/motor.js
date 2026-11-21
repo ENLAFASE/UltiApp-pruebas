@@ -83,7 +83,8 @@ export function generarCartas(roster, c) {
     };
     Object.keys(e.pts).forEach(function (id) { s.stats[id] = { pts: e.pts[id] }; });
     const rec = recomendarLinea(s, cupos(e.ratio), [], ctx);
-    e.linea = rec.ids; e.roles = rec.roles; e.motivos = rec.motivos; e.resumen = rec.resumen;
+    e.linea = rec.ids; e.roles = rec.roles; e.principales = rec.principales || []; e.motivos = rec.motivos; e.resumen = rec.resumen;
+    e.descansanMax = rec.descansanMax || [];
     e.entran = prev ? e.linea.filter(function (id) { return prev.linea.indexOf(id) < 0; }) : e.linea.slice();
     e.repiten = prev ? e.linea.filter(function (id) { return prev.linea.indexOf(id) >= 0; }) : [];
   });
