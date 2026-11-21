@@ -11,6 +11,7 @@ export const DEF_CFG = {
   equipo: 'mix',        // equipo del club: 'mix', 'open', 'husarex' u 'otro' (ver EQUIPOS)
   pointsToWin: 15,
   modoApp: 'coach',      // modo de la app: 'planillero', 'asistente' o 'coach' (ver js/modos.js)
+  rivalPlantel: false,  // Planillero: ¿registrar el plantel del rival (gol, asistencia e intercepción por jugador)?
   rivalLista: '',        // plantel del rival (solo Planillero): una línea por jugador, "7 Juan"
   // Medio tiempo: 'points' (por puntos), 'time' (por minutos) o
   // 'first' (lo que ocurra primero: los puntos o, cumplido el tiempo, al terminar el punto).
@@ -78,6 +79,8 @@ function cargar() {
       const d = JSON.parse(r);
       const viejo = d.cfg || {};
       d.cfg = Object.assign({}, DEF_CFG, viejo);
+      // Antes no había interruptor: si ya había plantel del rival escrito, queda activado.
+      if (viejo.rivalPlantel === undefined && String(viejo.rivalLista || '').trim()) d.cfg.rivalPlantel = true;
       // Versiones anteriores: "partido mixto" (sí/no) pasa a tipo de partido.
       if (!viejo.division) d.cfg.division = viejo.mixed === false ? 'open' : 'mixto';
       d.cfg.mixed = d.cfg.division === 'mixto';

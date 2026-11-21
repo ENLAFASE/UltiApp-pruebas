@@ -3,7 +3,7 @@
 //
 // IMPORTANTE: cada vez que cambies cualquier archivo de la app, sube el número
 // de VERSION. Así los teléfonos saben que hay una versión nueva y la descargan.
-const VERSION = 'p10';
+const VERSION = 'p11';
 // VERSIÓN DE PRUEBAS: nombres propios para no borrar ni pisar la copia de la app real
 // (las dos viven en el mismo dominio).
 const PREFIJO = 'ultiapp-pruebas-';

@@ -31,7 +31,11 @@ export function viewSummary(extra) {
   // Planillero: ambos equipos, solo gol, asistencia e intercepción.
   if (modo === 'planillero') {
     h += tablaBasica(c.club, porNumero(store.roster), s.stats);
-    h += tablaBasica(c.rival, porNumero(store.game.rivales || []), s.rstats);
+    const rivales = store.game.rivales || [];
+    if (rivales.length) h += tablaBasica(c.rival, porNumero(rivales), s.rstats) + '<p class="muted" style="margin:0">Total del equipo: ' + s.them + (s.them === 1 ? ' gol' : ' goles') + ' · ' + s.rblk + (s.rblk === 1 ? ' intercepción' : ' intercepciones') + '.</p>';
+    else h += '<h2 class="h2 disp">' + esc(c.rival) + '</h2><div class="tbl-wrap"><table><thead><tr><th>Equipo</th><th>Gol</th><th>Int</th></tr></thead><tbody>' +
+      '<tr><td>' + esc(c.rival) + '</td><td>' + s.them + '</td><td>' + s.rblk + '</td></tr></tbody></table></div>' +
+      '<p class="muted" style="margin:0">Sin plantel del rival: solo cantidades del equipo.</p>';
     h += '<p class="muted" style="margin:0">Int = intercepciones. Los goles y asistencias sin jugador registrado cuentan solo en el marcador.</p>';
     h += '<h2 class="h2 disp">Exportar</h2><div class="grid2"><button class="btn fill" data-a="expStats">Estadísticas CSV</button><button class="btn" data-a="expEvents">Eventos CSV</button></div>';
     return h + '</div>';

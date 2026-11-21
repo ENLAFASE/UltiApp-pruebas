@@ -96,6 +96,18 @@ function convocatoria(c) {
   return h;
 }
 
+// Planillero: ¿registrar el plantel del rival? Si sí, sus goles, asistencias e
+// intercepciones se anotan por jugador; si no, del rival solo se cuentan.
+function bloqueRival(c, enPartido) {
+  let h = '<label class="switch">Registrar plantel del rival<input type="checkbox" data-cfg="rivalPlantel"' + (c.rivalPlantel ? ' checked' : '') + '></label>';
+  if (!c.rivalPlantel) return h + '<span class="muted">Del rival se cuentan goles e intercepciones, sin indicar quién.</span>';
+  const nRiv = leerRivales(c.rivalLista).length;
+  h += '<div class="field"><label class="lbl" for="f_rivalLista">Plantel del rival (' + nRiv + ')</label>' +
+    '<textarea id="f_rivalLista" rows="4" data-cfg="rivalLista" placeholder="7 Juan&#10;10 Pedro&#10;23 Ana">' + esc(c.rivalLista || '') + '</textarea>' +
+    '<span class="muted">Una línea por jugador: número y nombre. Se registra quién anota, asiste e intercepta, como en la planilla de un torneo.' +
+    (enPartido ? ' Con el partido en curso, agrega jugadores al final de la lista (no cambies el orden).' : '') + '</span></div>';
+  return h;
+}
 function campoRival(c) {
   return '<div class="field"><label class="lbl" for="f_rival">Rival</label><input id="f_rival" data-cfg="rival" value="' + esc(c.rival === 'Rival' ? '' : c.rival) + '" placeholder="Nombre del rival"></div>';
 }
@@ -118,14 +130,7 @@ function preparar(c) {
     '<b>¿Quiénes juegan? ' + conv.length + ' convocados</b><span class="muted">' +
     (conv.length < 7 ? 'Se necesitan al menos 7. ' : (sinEv ? sinEv + ' sin evaluar (cuentan como 3). ' : '')) + 'Toca para sumar o sacar.</span>' +
     '<span class="prep-sel">' + convocatoria(c) + '</span></span></li>';
-  let rivalExtra = '';
-  if (modoApp() === 'planillero') {
-    // Planillero: también se registra el plantel convocado del rival.
-    const nRiv = leerRivales(c.rivalLista).length;
-    rivalExtra = '<div class="field"><label class="lbl" for="f_rivalLista">Plantel del rival (' + nRiv + ')</label>' +
-      '<textarea id="f_rivalLista" rows="4" data-cfg="rivalLista" placeholder="7 Juan&#10;10 Pedro&#10;23 Ana">' + esc(c.rivalLista || '') + '</textarea>' +
-      '<span class="muted">Una línea por jugador: número y nombre. Si lo dejas vacío, del rival solo se lleva el marcador.</span></div>';
-  }
+  const rivalExtra = modoApp() === 'planillero' ? bloqueRival(c, false) : '';
   h += '<li class="prep-i' + (rivalOk ? ' ok' : '') + '"><span class="prep-n">' + (rivalOk ? '✓' : 3) + '</span><span class="prep-t"><b>' + esc(c.club) + ' vs ' + (rivalOk ? esc(c.rival) : '…') + '</b>' +
     '<span class="prep-sel">' + campoRival(c) + rivalExtra + '</span></span></li>';
   h += '<li class="prep-i ok"><span class="prep-n">4</span><span class="prep-t"><b>¿Quién saca el primer pull?</b>' +
@@ -200,6 +205,7 @@ export function viewSettings() {
   h += '<h2 class="h2 disp">Partido</h2>';
   h += '<span class="muted">Jugando con <b>' + esc(c.club) + '</b> (' + DIV[c.division].toLowerCase() + '). El equipo no se cambia con un partido en curso.</span>';
   h += campoRival(c);
+  if (store.game && store.game.modo === 'planillero') h += bloqueRival(c, true);
   h += camposReglas(c);
   h += seccion('tiempos', 'Tiempos y timeouts', resumenTiempos(c), camposTiempos(c));
 

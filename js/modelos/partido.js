@@ -49,7 +49,7 @@ export function derive() {
   const g = store.game, c = cfg();
   const s = {
     us: 0, them: 0, point: 1, phase: 'line', offense: g.firstOffense, possession: null, holder: null,
-    line: [], lastLine: [], chain: [], stats: {}, rstats: {}, pulls: [], calls: [], to: { us: 0, them: 0 },
+    line: [], lastLine: [], chain: [], stats: {}, rstats: {}, rblk: 0, pulls: [], calls: [], to: { us: 0, them: 0 },
     half: false, halfPoint: null, ended: false, log: [], last: null, pointLog: []
   };
   let inicioPunto = null; // tiempo de juego en que salió el pull del punto
@@ -116,7 +116,7 @@ export function derive() {
         if (e.to) rst(e.to).goals++;
         if (e.from) rst(e.from).ast++;
         s.them++; endPoint('them', e); break;
-      case 'themBlock': if (e.player) rst(e.player).blk++; turn('them'); break; // intercepción del rival
+      case 'themBlock': s.rblk++; if (e.player) rst(e.player).blk++; turn('them'); break; // intercepción del rival
       case 'throwaway': if (e.player) st(e.player).thr++; turn('them'); break;
       case 'stall': st(e.player).stall++; turn('them'); break;
       case 'drop': st(e.player).drop++; turn('them'); break;

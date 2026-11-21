@@ -33,6 +33,12 @@ export function statsCSV(s) {
       rows.push([p.num, p.name, x.goals, x.ast, x.blk]);
     });
   }
+  // Totales del rival (siempre, tenga o no plantel registrado).
+  if (store.game && store.game.modo === 'planillero') {
+    rows.push([]);
+    rows.push(['rival', 'goles', 'intercepciones']);
+    rows.push([teamName('them'), s.them, s.rblk]);
+  }
   // Totales de pulls por equipo (incluye los pulls sin jugador registrado).
   rows.push([]);
   rows.push(['equipo', 'pulls', 'pulls_dentro', 'pulls_fuera', 'vuelo_promedio_s']);

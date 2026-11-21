@@ -27,6 +27,9 @@ function elegir(act, title, lista, sin, tema, extra) {
 }
 // Nuestros convocados y el plantel del rival (Planillero), por número.
 function idsNuestros() { return porNumero(convocados()).map(function (p) { return p.id; }); }
+// Planillero: plantel del rival del partido según el interruptor (vacío = solo cantidades).
+function rivalesDelPartido() { return cfg().rivalPlantel ? leerRivales(cfg().rivalLista) : []; }
+function actualizarRivales() { if (store.game && store.game.modo === 'planillero') store.game.rivales = rivalesDelPartido(); }
 function idsRivales() { return porNumero((store.game && store.game.rivales) || []).map(function (p) { return p.id; }); }
 function sinJugador(lista, id) { return lista.filter(function (x) { return x !== id; }); }
 
@@ -422,7 +425,7 @@ function alTocar(ev) {
       store.game = { firstOffense: cfg().firstPull === 'us' ? 'them' : 'us', events: [], start: null, finishedAt: null, created: Date.now(),
         modo: modoApp() }; // cada partido recuerda su modo
       // Planillero: también el plantel del rival.
-      if (store.game.modo === 'planillero') store.game.rivales = leerRivales(cfg().rivalLista);
+      if (store.game.modo === 'planillero') store.game.rivales = rivalesDelPartido();
       ui.sel = []; ui.selFor = null; ui.pull = null; ui.pick = null; ui.view = null;
       save(); ui.tab = 'game';
       break;
@@ -466,12 +469,13 @@ function alCambiar(ev) {
   const opUi = el.getAttribute('data-ui');
   if (opUi) { ui[opUi] = el.value; render(); return; }
   const key = el.getAttribute('data-cfg'); if (!key) return;
-  if (key === 'rivalLista') { store.cfg.rivalLista = el.value; save(); return; }
+  if (key === 'rivalLista') { store.cfg.rivalLista = el.value; actualizarRivales(); save(); return; }
   const c = store.cfg;
   if (el.type === 'checkbox') c[key] = el.checked;
   else if (el.type === 'number') c[key] = Math.max(0, parseInt(el.value, 10) || 0);
   else c[key] = el.value.trim() || DEF_CFG[key];
   if (key === 'margenVentaja' || key === 'margenDesventaja' || key === 'metaTiempo') c[key] = Math.max(1, c[key]);
+  if (key === 'rivalPlantel') actualizarRivales();
   if (key === 'division') {
     // "mixed" se mantiene para el resto de la app; los del otro género pasan a no convocados.
     c.mixed = c.division === 'mixto';
@@ -493,7 +497,7 @@ function alEscribir(ev) {
     save();
     return;
   }
-  if (el.getAttribute('data-cfg') === 'rivalLista') { store.cfg.rivalLista = el.value; save(); return; }
+  if (el.getAttribute('data-cfg') === 'rivalLista') { store.cfg.rivalLista = el.value; actualizarRivales(); save(); return; }
   const k = el.getAttribute('data-in'); if (!k) return;
   if (k === 'npNum') ui.newP.num = el.value;
   else if (k === 'npName') ui.newP.name = el.value;
