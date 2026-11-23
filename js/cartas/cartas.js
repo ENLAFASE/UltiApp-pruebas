@@ -34,6 +34,8 @@ function guardar() { try { localStorage.setItem(KEY, JSON.stringify(st)); } catc
 let cartas = null;          // resultado del motor (se recalcula si cambian plantel o ajustes)
 let celdaVista = null;      // casilla tocada en el tablero ("8-5")
 let aviso = null, avisoTimer = null;
+let copiaQue = 'todo';      // qué parte del plantel copiar como texto
+let textoCopia = null;      // texto a la vista si el teléfono no deja copiar solo
 function sucio() { cartas = null; }
 function calcular() {
   if (!cartas) cartas = generarCartas(convocados(), st.cfg);
@@ -83,6 +85,14 @@ function plantelDeApp(clave) {
     };
   } catch (e) { return null; }
 }
+// Plantel como texto, en el mismo formato que se pega: "36 Enzo H man5 av5 gol3 def4".
+function textoPlantel(lista) {
+  return lista.slice().sort(function (x, y) { return (+x.num || 0) - (+y.num || 0); }).map(function (p) {
+    const ev = p.ev || {};
+    return [p.num, p.name || '', letraG(p)].concat(HABILIDADES.filter(function (x) { return ev[x.k]; }).map(function (x) { return x.k + ev[x.k]; }))
+      .filter(Boolean).join(' ');
+  }).join('\n');
+}
 const FUENTES = [['ufs-pruebas-v1', 'UltiApp Pruebas'], ['ufs-v1', 'la app Húsares']];
 
 /* ---------- vistas ---------- */
@@ -121,7 +131,9 @@ function vistaPlantel() {
     '<span class="muted">Número, nombre, H (hombre) o M (mujer) y la evaluación de 1 a 5: man (manejo), av (corte de avance), gol (corte de gol), def (defensa).</span>' +
     '<div class="grid2"><button class="btn" data-a="pegar" data-v="agregar">Agregar</button><button class="btn" data-a="pegar" data-v="reemplazar">Reemplazar todo</button></div></div>';
   if (st.roster.length) {
-    h += '<p class="muted" style="margin:0">' + conv.length + ' convocados' + (sinEv ? ' · <b class="txt-warn">' + sinEv + ' sin evaluar</b> (cuentan como 3)' : ' · todos evaluados') + '. Toca el casillero para convocar o no.</p>';
+    h += '<h2 class="h2 disp">Evaluación</h2>';
+    h += '<p class="muted" style="margin:0">' + conv.length + ' convocados' + (sinEv ? ' · <b class="txt-warn">' + sinEv + ' sin evaluar</b> (cuentan como 3)' : ' · todos evaluados') + '. ' +
+      'Toca el casillero para convocar o no, la letra para cambiar el género y cada número para <b>cambiar la evaluación</b> (1 a 5). Los cambios quedan solo en las cartas: la app no se modifica.</p>';
     h += '<div class="ct-tabla"><div class="ct-fila ct-tit"><span></span><span>Jugador</span><span>G</span>' + HABILIDADES.map(function (x) { return '<span>' + x.corto + '</span>'; }).join('') + '</div>';
     st.roster.slice().sort(function (x, y) { return (+x.num || 0) - (+y.num || 0); }).forEach(function (p) {
       h += '<div class="ct-fila' + (p.noConv ? ' fuera' : '') + '"><input type="checkbox" data-conv="' + p.id + '"' + (p.noConv ? '' : ' checked') + ' aria-label="Convocar a ' + esc(p.name) + '">' +
@@ -130,6 +142,15 @@ function vistaPlantel() {
         HABILIDADES.map(function (x) { return selectEv(p, x.k); }).join('') + '</div>';
     });
     h += '</div>';
+    // Exportar: el plantel (con los cambios de evaluación) como texto, para guardarlo o pegarlo en la app.
+    const nConv = conv.length, nFuera = st.roster.length - nConv;
+    h += '<h2 class="h2 disp">Exportar plantel</h2>';
+    h += '<div class="field"><label class="lbl" for="ct-copia">Copiar como texto</label><select id="ct-copia" data-copia="1">' +
+      [['todo', 'Plantel completo (' + st.roster.length + ')'], ['conv', 'Solo convocados (' + nConv + ')'], ['fuera', 'Solo no convocados (' + nFuera + ')']]
+        .map(function (o) { return '<option value="' + o[0] + '"' + (copiaQue === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select>' +
+      '<span class="muted">Mismo formato que se pega arriba y en la pestaña Plantel de la app (con la evaluación).</span></div>';
+    h += '<button class="btn full" data-a="copiarPlantel">Copiar plantel</button>';
+    if (textoCopia != null) h += '<textarea id="ct-copia-txt" rows="5" readonly>' + esc(textoCopia) + '</textarea><span class="muted">Mantén presionado el texto para copiarlo.</span>';
     h += '<button class="btn danger full" data-a="vaciar">Borrar plantel de las cartas</button>';
   }
   h += '<button class="btn big fill disp full" data-a="paso" data-v="partido"' + (conv.length >= 7 ? '' : ' disabled') + '>Seguir: partido</button>';
@@ -397,6 +418,17 @@ RAIZ.addEventListener('click', function (ev) {
       st.roster = v === 'reemplazar' ? lista : st.roster.concat(lista);
       sucio(); avisar(lista.length + ' jugadores ' + (v === 'reemplazar' ? 'cargados' : 'agregados')); break;
     }
+    case 'copiarPlantel': {
+      const lista = st.roster.filter(function (p) { return copiaQue === 'todo' || (copiaQue === 'conv' ? !p.noConv : p.noConv); });
+      const texto = textoPlantel(lista);
+      if (!texto) { avisar('No hay jugadores en esa parte del plantel'); break; }
+      const listo = function () { textoCopia = null; avisar(lista.length + ' jugadores copiados'); guardar(); render(); };
+      const mostrar = function () { textoCopia = texto; avisar('Copia el texto de abajo'); guardar(); render(); };
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(texto).then(listo, mostrar); return; }
+      } catch (e) {}
+      mostrar(); return;
+    }
     case 'genero': { const p = P(id); if (p) { p.g = p.g === 'F' ? 'M' : 'F'; sucio(); } break; }
     case 'vaciar': if (confirm('¿Borrar el plantel de las cartas? (La app no se modifica.)')) { st.roster = []; st.ruta = []; sucio(); } break;
     case 'cf': st.cfg[b.getAttribute('data-k')] = v; sucio(); break;
@@ -419,6 +451,7 @@ RAIZ.addEventListener('click', function (ev) {
 });
 RAIZ.addEventListener('change', function (ev) {
   const el = ev.target;
+  if (el.hasAttribute('data-copia')) { copiaQue = el.value; textoCopia = null; render(); return; }
   if (el.hasAttribute('data-conv')) { const p = P(el.getAttribute('data-conv')); if (p) p.noConv = !el.checked; sucio(); }
   else if (el.hasAttribute('data-ev')) {
     const p = P(el.getAttribute('data-id')); if (!p) return;
