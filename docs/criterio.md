@@ -129,3 +129,12 @@ Antes el mínimo se cumplía desde la segunda mitad en cualquier punto, y los de
 2. **Urgencia, en la segunda mitad:** si la deuda × 2 ≥ los puntos que quedan como mínimo (con `metaEfectiva`), entran aunque no sea el punto ideal.
 
 Simulación (plantel Mixto, 2.000 partidos): Papalote pasa de 34 % a 79 % de sus puntos en defensa con 4 hombres, de 42 % a 16 % con el partido apretado y su primer punto (mediana) del 13 al 4. Con compensación, la defensa promedio de los hombres que lo acompañan sube de 3,11 a 3,50. Todos siguen llegando al mínimo; los partidos ganados quedan dentro del margen de error (52,0 % → 50,8 %, ±1).
+
+## 11. Rotación con descanso de principales, posición natural y parejas (2026-11-23)
+
+- **Rotación** (ganando por el margen de ventaja o más): descansan los **principales** (los 4 hombres y 4 mujeres de mayor nivel general, `PARAM.PRINCIPALES_GENERO`; en open, los 7 mejores). La columna vertical (manejo, avance y gol con nota 4+) sale de los demás si hay quién; si no, de un principal. El resto de la línea se completa con nota 3+ en su posición (`PARAM.NOTA_MIN_POSICION_ROTACION`), dando minutos a los de nivel medio hacia abajo; un principal solo entra si falta (`PARAM.CASTIGO_PRINCIPAL_ROTACION`).
+- **Parejas:** los de menor nivel = fuera de los principales y sin ninguna nota 4+ en manejo, avance o gol (hasta 4 por género, `PARAM.PAREJAS_BAJOS`). Se arman 2 parejas lo más parejas posible entre sí (suma de nivel general). En rotación, cuando su género tiene mayoría en el punto (4 de 7), entra una pareja junta y el resto de su género se elige por nivel (refuerzo). Las parejas se turnan.
+- **Posición natural en ataque:** en puntos de ataque, cada jugador va de preferencia a la posición en que tiene su mejor nota (manejo, avance o gol). Si tiene empate en su mejor nota, puede ir a cualquiera de esas. En la columna vertical se prefiere a quien calza; al completar se castiga jugar fuera (`PARAM.CASTIGO_FUERA_POSICION`).
+- La compensación del mínimo de participación usa ahora el nivel del tipo de punto (ataque o defensa).
+
+Simulación (plantel Mixto de Húsares, 2.000 partidos): en rotación, los principales por línea bajan de 4,3 a 2,8 (hombres de 2,2 a 1,0; mujeres de 2,1 a 1,8, porque solo hay 2 mujeres fuera de las principales). Las parejas Papalote + Max y Milton + Moska entran en 18 % y 20 % de los puntos de rotación. En ataque, los jugadores fuera de su mejor posición bajan de 14,5 % a 3,2 %. Partidos ganados sin cambio (50,8 % → 51,3 %, ±1).

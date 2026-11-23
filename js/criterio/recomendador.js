@@ -93,6 +93,11 @@ export function recomendarLinea(s, req, elegidos, ctx) {
       const rol = faltan('man') > 0 ? 'man' : faltan('av') > 0 ? 'av' : faltan('gol') > 0 ? 'gol' : null;
       let cands = libres.filter(cabe), forzado = false, rescate = false;
       if (!cands.length) { cands = libres.slice(); forzado = true; } // no alcanza la proporción de géneros
+      // Rotación: fuera de la columna vertical, nota mínima en la posición (si hay quién).
+      if (notaMinPos && rol) {
+        const conNota = cands.filter(function (p) { return ev(p)[rol] >= notaMinPos; });
+        if (conNota.length) cands = conNota;
+      }
       if (rol === 'man') {
         // Perfil de manejador: nota 3 o más (o la mejor disponible). Si entre los descansados
         // no hay ninguno, entra un manejador que llegó al máximo de seguidos.
@@ -109,14 +114,17 @@ export function recomendarLinea(s, req, elegidos, ctx) {
       if (!cands.length) break;
       const valor = function (p) {
         const pos = rol || ['man', 'av', 'gol'].reduce(function (m, r) { return ev(p)[r] > ev(p)[m] ? r : m; });
-        return puntaje(p) + PARAM.PESO_POSICION * (ev(p)[pos] - 3) + PARAM.EQUIDAD * deficit(p) +
-          (compensar && (compensar === 'todos' || genero(p) === compensar) ? PARAM.COMPENSACION * (nivelDefensa(p) - 3) : 0);
+        const refuerzo = fuerteG && (fuerteG === 'todos' || genero(p) === fuerteG);
+        return (refuerzo ? nivelPunto(p, ataque) + desgaste(p, 0.5) : puntaje(p)) + PARAM.PESO_POSICION * (ev(p)[pos] - 3) + PARAM.EQUIDAD * deficit(p) +
+          (compensar && (compensar === 'todos' || genero(p) === compensar) ? PARAM.COMPENSACION * (nivelPunto(p, ataque) - 3) : 0) -
+          (ataque && rol && fueraDePosicion(p, rol) ? PARAM.CASTIGO_FUERA_POSICION : 0);
       };
       cands.sort(function (a, b) { return (valor(b) - valor(a)) || ((+a.num || 0) - (+b.num || 0)); });
       const p = cands[0];
       const pos = rol || ['man', 'av', 'gol'].reduce(function (m, r) { return ev(p)[r] > ev(p)[m] ? r : m; });
       roles[p.id] = pos;
-      tomar(p, NOMBRE_POS[pos] + ' (nota ' + ev(p)[pos] + ') · ' + motivoDe(p) +
+      const acompana = fuerteG && (fuerteG === 'todos' || genero(p) === fuerteG);
+      tomar(p, NOMBRE_POS[pos] + ' (nota ' + ev(p)[pos] + ') · ' + (acompana ? 'Refuerza la línea que acompaña a la pareja (nivel ' + n1(nivelPunto(p, ataque)) + ')' + txtDesgaste(p) : motivoDe(p)) +
         (forzado ? ' (completa la línea; no alcanza la proporción)' : '') + (rescate ? NOTA_RESCATE : (sufijo || '')));
     }
   }
@@ -154,6 +162,9 @@ export function recomendarLinea(s, req, elegidos, ctx) {
       }
       const buenos = cands.filter(function (p) { return ev(p)[rol.k] >= Math.min(PARAM.NOTA_BUENA, mejor); });
       buenos.sort(function (a, b) {
+        // En ataque, primero quien tiene en esta posición su mejor nota (o un empate en lo mejor).
+        const calce = ataque ? (fueraDePosicion(a, rol.k) - fueraDePosicion(b, rol.k)) : 0;
+        if (calce) return calce;
         const nota = ev(b)[rol.k] - ev(a)[rol.k];
         const rot = (descanso(b) - descanso(a)) || (pts(a) - pts(b));
         return rotar ? (rot || nota) : (nota || (desgaste(b, 0.5) - desgaste(a, 0.5)));
@@ -163,6 +174,44 @@ export function recomendarLinea(s, req, elegidos, ctx) {
       const esClave = preferir && preferir.has(p.id);
       tomar(p, rol.principal + ' (' + rol.nombre + ' ' + ev(p)[rol.k] + ')' + (esClave ? (sufijo || '') : '') + txtDesgaste(p) + (rescate ? NOTA_RESCATE : ''));
     });
+  }
+  // ¿Su mejor nota de ataque está claramente en OTRA posición? (si hay empate en lo
+  // mejor, no tiene una posición preferida y puede jugar en cualquiera de ellas)
+  function fueraDePosicion(p, rol) {
+    const e = ev(p), max = Math.max(e.man, e.av, e.gol);
+    const mejores = ['man', 'av', 'gol'].filter(function (r) { return e[r] === max; });
+    return mejores.length === 1 && mejores[0] !== rol ? 1 : 0;
+  }
+  let notaMinPos = 0;   // rotación: nota mínima en la posición para completar la línea
+  let fuerteG = null;   // género cuyo resto de la línea se elige por nivel (acompaña a una pareja)
+  // Rotación: una pareja de jugadores de menor nivel entra junta cuando su género tiene
+  // mayoría en el punto (4 de 7), y el resto de su género se elige entre los más fuertes.
+  function entraPareja(parejas) {
+    for (let i = 0; i < parejas.length; i++) {
+      const par = parejas[i];
+      if (par.some(function (p) { return !libres.some(function (x) { return x.id === p.id; }); })) continue;
+      const g = genero(par[0]);
+      if (req && c.mixed && !(req[g] > EN_CANCHA / 2)) continue;
+      if ((req && c.mixed ? req[g] - tengo[g] : EN_CANCHA - sel.length) < 2) continue;
+      const roles2 = []; let ok = true;
+      par.forEach(function (p) {
+        const r = ['av', 'gol', 'man'].filter(function (x) {
+          return faltan(x) - roles2.filter(function (y) { return y === x; }).length > 0 && (x !== 'man' || ev(p).man >= PARAM.NOTA_PERFIL_MANEJO);
+        }).sort(function (a, b) { return ev(p)[b] - ev(p)[a]; })[0];
+        if (!r) ok = false;
+        roles2.push(r);
+      });
+      if (!ok) continue;
+      par.forEach(function (p, j) {
+        const otro = par[1 - j];
+        roles[p.id] = roles2[j];
+        tomar(p, NOMBRE_POS[roles2[j]] + ' (nota ' + ev(p)[roles2[j]] + ') · Entra en pareja con ' + (otro.name || '#' + otro.num) +
+          ' (nivel de la pareja ' + n1((nivelGeneral(p) + nivelGeneral(otro)) / 2) + '), acompañados de jugadores fuertes' + txtDesgaste(p));
+      });
+      fuerteG = c.mixed ? g : 'todos';
+      return true;
+    }
+    return false;
   }
   // Cuota de puntos según la evaluación: cada uno debería jugar una parte de los
   // puntos proporcional a su nivel (dentro de su género si es mixto). Quien va
@@ -231,11 +280,23 @@ export function recomendarLinea(s, req, elegidos, ctx) {
     const B = PARAM.BONO_DESCANSO;
 
     if (zona.id === 'rotacion') {
-      // Piezas clave en la estructura; el resto, minutos para el nivel más bajo.
-      const clave = piezasClave(lista, c.mixed);
-      plan = { estructura: function () { asegurarEstructura(true, null, ' · pieza clave', clave); },
-        puntaje: function (p) { return (5 - nivelPunto(p, ataque)) + desgaste(p, B.rotacion); },
-        motivo: function (p) { return 'Suma minutos (nivel ' + n1(nivelPunto(p, ataque)) + ')' + txtDesgaste(p); } };
+      // Descansan los principales (los 4 hombres y 4 mujeres de mayor nivel). La columna
+      // vertical (manejo, avance y gol con nota 4+) sale de los demás si hay quién; el resto,
+      // con nota 3+ en su posición, da minutos a los de nivel medio hacia abajo. Los de
+      // menor nivel entran en parejas balanceadas, acompañados de jugadores fuertes.
+      const princ = principalesRotacion(lista, c.mixed);
+      // Turno de cada pareja: primero la que descansó el punto anterior, luego la que tiene
+      // al jugador con menos puntos, para que las parejas se alternen.
+      const parejas = parejasBajos(lista, c.mixed, princ).sort(function (a, b) {
+        const desc = function (x) { return descanso(x[0]) && descanso(x[1]) ? 1 : 0; };
+        const minimo = function (x) { return Math.min(pts(x[0]), pts(x[1])); };
+        return (desc(b) - desc(a)) || (minimo(a) - minimo(b)) || ((pts(a[0]) + pts(a[1])) - (pts(b[0]) + pts(b[1])));
+      });
+      notaMinPos = PARAM.NOTA_MIN_POSICION_ROTACION;
+      plan = { estructura: function () { asegurarEstructura(true, princ, ' · principal (no hay otro con nota 4+)', null); entraPareja(parejas); },
+        puntaje: function (p) { return (5 - nivelPunto(p, ataque)) + desgaste(p, B.rotacion) - (princ.has(p.id) ? PARAM.CASTIGO_PRINCIPAL_ROTACION : 0); },
+        motivo: function (p) { return (princ.has(p.id) ? 'Principal: entra porque faltan jugadores con nota 3+ en esta posición' : 'Suma minutos (nivel ' + n1(nivelPunto(p, ataque)) + ')') + txtDesgaste(p); } };
+      resumen += ' · descansan los principales';
 
     } else if (zona.id === 'descanso') {
       const clave = piezasClave(lista, c.mixed);
@@ -296,6 +357,40 @@ export function recomendarLinea(s, req, elegidos, ctx) {
 
   const sinEvaluar = lista.filter(function (p) { return !evaluado(p); }).length;
   return { ids: sel, resumen: resumen, motivos: motivos, roles: roles, principales: principales, descansanMax: cansados.map(function (p) { return p.id; }), sinEvaluar: sinEvaluar, modo: modo, zona: zona && zona.id };
+}
+
+// Rotación: los principales (4 hombres y 4 mujeres de mayor nivel general; en open, 7).
+export function principalesRotacion(lista, mixto) {
+  const princ = new Set();
+  const top = function (g, n) {
+    g.slice().sort(function (a, b) { return nivelGeneral(b) - nivelGeneral(a); }).slice(0, n).forEach(function (p) { princ.add(p.id); });
+  };
+  if (mixto) {
+    top(lista.filter(function (p) { return p.g !== 'F'; }), PARAM.PRINCIPALES_GENERO);
+    top(lista.filter(function (p) { return p.g === 'F'; }), PARAM.PRINCIPALES_GENERO);
+  } else top(lista, PARAM.PRINCIPALES_OPEN);
+  return princ;
+}
+// Parejas de menor nivel, por género, armadas para que las parejas queden lo más
+// parejas posible entre sí (suma de niveles generales lo más igual posible).
+export function parejasBajos(lista, mixto, princ) {
+  const grupos = mixto ? [lista.filter(function (p) { return p.g !== 'F'; }), lista.filter(function (p) { return p.g === 'F'; })] : [lista];
+  const parejas = [];
+  grupos.forEach(function (g) {
+    // De menor nivel = fuera de los principales y sin una posición fuerte (ninguna nota 4+ en
+    // manejo, avance o gol): quien tiene una posición fuerte entra por su posición.
+    let bajos = g.filter(function (p) { const e = ev(p); return !princ.has(p.id) && Math.max(e.man, e.av, e.gol) < PARAM.NOTA_BUENA; })
+      .sort(function (a, b) { return nivelGeneral(a) - nivelGeneral(b); }).slice(0, PARAM.PAREJAS_BAJOS);
+    if (bajos.length % 2) bajos = bajos.slice(0, bajos.length - 1);
+    if (bajos.length < 2) return;
+    if (bajos.length === 4) {
+      const opciones = [[[0, 1], [2, 3]], [[0, 2], [1, 3]], [[0, 3], [1, 2]]];
+      const suma = function (par) { return nivelGeneral(bajos[par[0]]) + nivelGeneral(bajos[par[1]]); };
+      const mejor = opciones.reduce(function (m, o) { return Math.abs(suma(o[0]) - suma(o[1])) < Math.abs(suma(m[0]) - suma(m[1])) ? o : m; });
+      mejor.forEach(function (par) { parejas.push([bajos[par[0]], bajos[par[1]]]); });
+    } else parejas.push([bajos[0], bajos[1]]);
+  });
+  return parejas;
 }
 
 // Los mejores para atacar (los que se reservan para el próximo punto de ataque).

@@ -41,5 +41,14 @@ export const PARAM = {
   BONO_DESCANSO: { fuerte: 0.3, ataque: 0.4, poca: 0.8, rotacion: 1.0 }, // premio por haber descansado el punto anterior
   CASTIGO_RACHA: 0.35,    // por cada punto seguido jugado desde el 2.º en adelante
   CASTIGO_PUNTOS: 0.05,   // por cada punto jugado en el partido (reparte minutos)
-  CASTIGO_NUCLEO_ATAQUE: 1.5 // en "asegurar el ataque", lo que se castiga en defensa a quien es del núcleo ofensivo
+  CASTIGO_NUCLEO_ATAQUE: 1.5, // en "asegurar el ataque", lo que se castiga en defensa a quien es del núcleo ofensivo
+
+  // Rotación (ganando por el margen de ventaja o más)
+  PRINCIPALES_GENERO: 4,  // descansan los 4 hombres y las 4 mujeres de mayor nivel general (en open: PRINCIPALES_OPEN)
+  PRINCIPALES_OPEN: 7,
+  CASTIGO_PRINCIPAL_ROTACION: 3, // cuánto se castiga a un principal para que entre solo si hace falta
+  NOTA_MIN_POSICION_ROTACION: 3, // fuera de la columna vertical, nota mínima en la posición que ocupa
+  PAREJAS_BAJOS: 4,       // cuántos de menor nivel (fuera de los principales y sin nota 4+ en ataque) forman parejas, por género
+  // Posición en ataque: castigo por jugar fuera de la posición en que tiene su mejor nota
+  CASTIGO_FUERA_POSICION: 1.0
 };
