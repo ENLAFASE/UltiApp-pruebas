@@ -50,5 +50,6 @@ export const PARAM = {
   NOTA_MIN_POSICION_ROTACION: 3, // fuera de la columna vertical, nota mínima en la posición que ocupa
   PAREJAS_BAJOS: 4,       // cuántos de menor nivel (fuera de los principales y sin nota 4+ en ataque) forman parejas, por género
   // Posición en ataque: castigo por jugar fuera de la posición en que tiene su mejor nota
-  CASTIGO_FUERA_POSICION: 1.0
+  CASTIGO_FUERA_POSICION: 1.0,
+  DIF_FUERA_POSICION: 2   // se considera fuera de posición si su nota ahí es 2+ puntos menor que su mejor nota
 };

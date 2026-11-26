@@ -124,7 +124,7 @@ export function recomendarLinea(s, req, elegidos, ctx) {
       const pos = rol || ['man', 'av', 'gol'].reduce(function (m, r) { return ev(p)[r] > ev(p)[m] ? r : m; });
       roles[p.id] = pos;
       const acompana = fuerteG && (fuerteG === 'todos' || genero(p) === fuerteG);
-      tomar(p, NOMBRE_POS[pos] + ' (nota ' + ev(p)[pos] + ') · ' + (acompana ? 'Refuerza la línea que acompaña a la pareja (nivel ' + n1(nivelPunto(p, ataque)) + ')' + txtDesgaste(p) : motivoDe(p)) +
+      tomar(p, NOMBRE_POS[pos] + ' (nota ' + ev(p)[pos] + ') · ' + (acompana ? 'Pieza fuerte que acompaña a los de menor nivel (nivel ' + n1(nivelPunto(p, ataque)) + ')' + txtDesgaste(p) : motivoDe(p)) +
         (forzado ? ' (completa la línea; no alcanza la proporción)' : '') + (rescate ? NOTA_RESCATE : (sufijo || '')));
     }
   }
@@ -175,17 +175,43 @@ export function recomendarLinea(s, req, elegidos, ctx) {
       tomar(p, rol.principal + ' (' + rol.nombre + ' ' + ev(p)[rol.k] + ')' + (esClave ? (sufijo || '') : '') + txtDesgaste(p) + (rescate ? NOTA_RESCATE : ''));
     });
   }
-  // ¿Su mejor nota de ataque está claramente en OTRA posición? (si hay empate en lo
-  // mejor, no tiene una posición preferida y puede jugar en cualquiera de ellas)
+  // ¿Está claramente fuera de su posición? Sí, si su nota en esta posición es 2 o más
+  // puntos menor que su mejor nota de ataque (PARAM.DIF_FUERA_POSICION).
   function fueraDePosicion(p, rol) {
     const e = ev(p), max = Math.max(e.man, e.av, e.gol);
-    const mejores = ['man', 'av', 'gol'].filter(function (r) { return e[r] === max; });
-    return mejores.length === 1 && mejores[0] !== rol ? 1 : 0;
+    return max - e[rol] >= PARAM.DIF_FUERA_POSICION ? 1 : 0;
   }
   let notaMinPos = 0;   // rotación: nota mínima en la posición para completar la línea
   let fuerteG = null;   // género cuyo resto de la línea se elige por nivel (acompaña a una pareja)
   // Rotación: una pareja de jugadores de menor nivel entra junta cuando su género tiene
   // mayoría en el punto (4 de 7), y el resto de su género se elige entre los más fuertes.
+  function rolLibrePara(p, ya) {
+    return ['av', 'gol', 'man'].filter(function (x) {
+      return faltan(x) - (ya || []).filter(function (y) { return y === x; }).length > 0 && (x !== 'man' || ev(p).man >= PARAM.NOTA_PERFIL_MANEJO);
+    }).sort(function (a, b) { return ev(p)[b] - ev(p)[a]; })[0];
+  }
+  // Rotación: entran los de menor nivel. Con mayoría de su género en el punto (4 de 7)
+  // entra una pareja; con minoría (3 de 7) entra uno solo. En ambos casos lo acompañan
+  // al menos 2 piezas más fuertes de su género, y la columna vertical ya está asegurada.
+  function entraBajos(parejas) {
+    if (entraPareja(parejas)) return true;
+    if (!req || !c.mixed) return false;
+    const solos = [];
+    parejas.forEach(function (par) { par.forEach(function (p) { if (libres.some(function (x) { return x.id === p.id; })) solos.push(p); }); });
+    solos.sort(function (a, b) { return (descanso(b) - descanso(a)) || (pts(a) - pts(b)) || (nivelGeneral(a) - nivelGeneral(b)); });
+    for (let i = 0; i < solos.length; i++) {
+      const p = solos[i], g = genero(p);
+      if (req[g] > EN_CANCHA / 2 || !cabe(p)) continue;          // minoría de su género
+      if (req[g] - 1 < 2) continue;                               // deben quedar 2 de su género para acompañarlo
+      const rol = rolLibrePara(p); if (!rol) continue;
+      roles[p.id] = rol;
+      tomar(p, NOMBRE_POS[rol] + ' (nota ' + ev(p)[rol] + ') · Entra con ' + (req[g] - 1) + (g === 'F' ? ' mujeres' : ' hombres') +
+        ' más fuertes y la columna vertical asegurada' + txtDesgaste(p));
+      fuerteG = g;
+      return true;
+    }
+    return false;
+  }
   function entraPareja(parejas) {
     for (let i = 0; i < parejas.length; i++) {
       const par = parejas[i];
@@ -261,13 +287,19 @@ export function recomendarLinea(s, req, elegidos, ctx) {
     }
     // 1) Oportunidad: defensa, mayoría de su género, partido no apretado.
     if (ataque || (zona && zona.id === 'fuerte')) return;
+    // Con mayoría de su género se prefiere; con minoría (3 de 7) también puede entrar si
+    // quedan 2 de su género para acompañarlo, y esos 2 se eligen entre los más fuertes.
+    const mayoria = function (p) { return !req || !c.mixed || req[genero(p)] > EN_CANCHA / 2; };
     const opciones = deudores.filter(function (p) {
-      if (!cabe(p)) return false;
-      return !req || !c.mixed || req[genero(p)] > EN_CANCHA / 2;
-    }).sort(function (a, b) { return (pts(a) - pts(b)) || (nivelGeneral(a) - nivelGeneral(b)); });
+      return cabe(p) && (mayoria(p) || req[genero(p)] - 1 >= 2);
+    }).sort(function (a, b) { return (mayoria(b) - mayoria(a)) || (pts(a) - pts(b)) || (nivelGeneral(a) - nivelGeneral(b)); });
     const p = opciones[0];
-    if (p && entra(p, ' · entra en defensa' + (req && c.mixed ? ' con ' + req[genero(p)] + (genero(p) === 'F' ? ' mujeres' : ' hombres') : '') + '; el resto de su género se elige premiando la defensa')) {
-      compensar = c.mixed ? genero(p) : 'todos';
+    if (!p) return;
+    const g = genero(p), nG = req && c.mixed ? req[g] : null, txtG = nG ? ' con ' + nG + (g === 'F' ? ' mujeres' : ' hombres') : '';
+    if (mayoria(p)) {
+      if (entra(p, ' · entra en defensa' + txtG + '; el resto de su género se elige premiando la defensa')) compensar = c.mixed ? g : 'todos';
+    } else if (entra(p, ' · entra en defensa' + txtG + '; los otros ' + (nG - 1) + ' de su género son los más fuertes disponibles')) {
+      fuerteG = g;
     }
   }
   function textoNivel(p, valor, tipo) { return 'Nivel ' + n1(valor) + ' ' + tipo + txtDesgaste(p); }
@@ -293,7 +325,7 @@ export function recomendarLinea(s, req, elegidos, ctx) {
         return (desc(b) - desc(a)) || (minimo(a) - minimo(b)) || ((pts(a[0]) + pts(a[1])) - (pts(b[0]) + pts(b[1])));
       });
       notaMinPos = PARAM.NOTA_MIN_POSICION_ROTACION;
-      plan = { estructura: function () { asegurarEstructura(true, princ, ' · principal (no hay otro con nota 4+)', null); entraPareja(parejas); },
+      plan = { estructura: function () { asegurarEstructura(true, princ, ' · principal (no hay otro con nota 4+)', null); entraBajos(parejas); },
         puntaje: function (p) { return (5 - nivelPunto(p, ataque)) + desgaste(p, B.rotacion) - (princ.has(p.id) ? PARAM.CASTIGO_PRINCIPAL_ROTACION : 0); },
         motivo: function (p) { return (princ.has(p.id) ? 'Principal: entra porque faltan jugadores con nota 3+ en esta posición' : 'Suma minutos (nivel ' + n1(nivelPunto(p, ataque)) + ')') + txtDesgaste(p); } };
       resumen += ' · descansan los principales';

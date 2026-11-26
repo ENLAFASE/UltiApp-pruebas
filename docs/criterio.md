@@ -138,3 +138,10 @@ Simulación (plantel Mixto, 2.000 partidos): Papalote pasa de 34 % a 79 % de sus
 - La compensación del mínimo de participación usa ahora el nivel del tipo de punto (ataque o defensa).
 
 Simulación (plantel Mixto de Húsares, 2.000 partidos): en rotación, los principales por línea bajan de 4,3 a 2,8 (hombres de 2,2 a 1,0; mujeres de 2,1 a 1,8, porque solo hay 2 mujeres fuera de las principales). Las parejas Papalote + Max y Milton + Moska entran en 18 % y 20 % de los puntos de rotación. En ataque, los jugadores fuera de su mejor posición bajan de 14,5 % a 3,2 %. Partidos ganados sin cambio (50,8 % → 51,3 %, ±1).
+
+## 12. Posición con margen de 2 y menor nivel también en minoría de género (2026-11-26)
+
+- **Fuera de posición** = su nota en esa posición es 2 o más puntos menor que su mejor nota de ataque (`PARAM.DIF_FUERA_POSICION`). Con 1 punto de diferencia (Gigo: gol 4, avance 3) puede jugar en cualquiera de las dos.
+- **Menor nivel en minoría de su género:** además de entrar con mayoría de su género (pareja en rotación, o en defensa por el mínimo), ahora pueden entrar uno a la vez en puntos en que su género es minoría (3 de 7), siempre con la columna vertical asegurada y con los otros 2 de su género elegidos entre los más fuertes ("Pieza fuerte que acompaña a los de menor nivel").
+
+Simulación (plantel Mixto, 2.000 partidos): Gigo vuelve de 37,6 % a 40,0 % del partido (cuota 43,7 %); jugadores en ataque con 2+ puntos bajo su mejor nota: 0,1 %. Papalote entra en puntos de 3 hombres en 26 % de sus puntos (antes 10 %), y en 98 % de sus puntos lo acompañan 2 o más hombres claramente más fuertes. Distancia a la cuota: 6,8 → 6,2 puntos de %. Partidos ganados: 51,3 % → 50,1 % (±1).
